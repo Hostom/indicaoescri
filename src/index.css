@@ -93,4 +93,16 @@
   .tab-inactive {
     @apply bg-secondary text-secondary-foreground hover:bg-muted;
   }
+
+  .hover-lift {
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md;
+  }
+
+  .gradient-primary {
+    @apply bg-gradient-to-br from-primary to-primary/80;
+  }
+
+  .glass-effect {
+    @apply bg-card/80 backdrop-blur-sm;
+  }
 }

@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
 import logoCri from "@/assets/logo-cri.png";
+import { Lock, Mail, ArrowLeft, LogIn } from "lucide-react";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -124,72 +124,94 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <img src={logoCri} alt="Logo ADIM" className="mx-auto h-12 mb-4" />
-          <CardTitle className="text-2xl">
-            {isLogin ? "Acesso ao Dashboard" : "Criar Conta"}
-          </CardTitle>
-          <CardDescription>
-            {isLogin
-              ? "Entre com suas credenciais para acessar o dashboard"
-              : "Crie uma conta para acessar o sistema"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={isLogin ? handleLogin : handleSignup} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              {errors.password && (
-                <p className="text-sm text-destructive">{errors.password}</p>
-              )}
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Carregando..." : isLogin ? "Entrar" : "Criar Conta"}
+    <div className="min-h-screen bg-background flex flex-col">
+      <header className="border-b bg-card/50 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <img src={logoCri} alt="Logo CRI" className="h-10" />
+          <Link to="/">
+            <Button variant="outline" size="sm" className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Voltar
             </Button>
-          </form>
-
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              className="text-sm text-primary hover:underline"
-              onClick={() => setIsLogin(!isLogin)}
-            >
-              {isLogin
-                ? "Não tem conta? Criar conta"
-                : "Já tem conta? Fazer login"}
-            </button>
-          </div>
-
-          <Link
-            to="/"
-            className="block text-center text-muted-foreground hover:underline text-sm mt-4"
-          >
-            ← Voltar ao formulário
           </Link>
-        </CardContent>
-      </Card>
+        </div>
+      </header>
+
+      <main className="flex-1 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-lg animate-fade-in">
+          <CardHeader className="text-center space-y-4">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Lock className="w-8 h-8 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-2xl font-bold">
+                {isLogin ? "Acessar Dashboard" : "Criar Conta"}
+              </CardTitle>
+              <CardDescription className="mt-2">
+                {isLogin ? "Entre com suas credenciais" : "Crie uma conta para acessar"}
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={isLogin ? handleLogin : handleSignup} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="transition-all focus:ring-2 focus:ring-primary/20"
+                />
+                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-muted-foreground" />
+                  Senha
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="transition-all focus:ring-2 focus:ring-primary/20"
+                />
+                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+              </div>
+              <Button type="submit" className="w-full gap-2" size="lg" disabled={loading}>
+                <LogIn className="w-4 h-4" />
+                {loading ? "Carregando..." : isLogin ? "Entrar" : "Criar Conta"}
+              </Button>
+            </form>
+
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                className="text-sm text-primary hover:underline"
+                onClick={() => setIsLogin(!isLogin)}
+              >
+                {isLogin ? "Não tem conta? Criar conta" : "Já tem conta? Fazer login"}
+              </button>
+            </div>
+
+            <div className="mt-6 pt-6 border-t text-center">
+              <p className="text-xs text-muted-foreground">
+                Acesso restrito a administradores autorizados.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+
+      <footer className="py-4 text-center text-sm text-muted-foreground">
+        GRUPO CRI/ADIM &copy; {new Date().getFullYear()}
+      </footer>
     </div>
   );
 };
