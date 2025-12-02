@@ -127,15 +127,50 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          cidades: string[] | null
+          created_at: string
+          id: string
+          nome: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          cidades?: string[] | null
+          created_at?: string
+          id?: string
+          nome: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          cidades?: string[] | null
+          created_at?: string
+          id?: string
+          nome?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_cities: { Args: { _user_id: string }; Returns: string[] }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "DIRETOR" | "GERENTE"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -262,6 +297,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["DIRETOR", "GERENTE"],
+    },
   },
 } as const
