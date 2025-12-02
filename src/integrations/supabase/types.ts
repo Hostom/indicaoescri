@@ -14,7 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      consultores: {
+        Row: {
+          ativo_na_roleta: boolean
+          cidade: string
+          created_at: string
+          data_ultima_indicacao: string | null
+          email: string
+          id: string
+          natureza: string
+          nome: string
+        }
+        Insert: {
+          ativo_na_roleta?: boolean
+          cidade: string
+          created_at?: string
+          data_ultima_indicacao?: string | null
+          email: string
+          id?: string
+          natureza: string
+          nome: string
+        }
+        Update: {
+          ativo_na_roleta?: boolean
+          cidade?: string
+          created_at?: string
+          data_ultima_indicacao?: string | null
+          email?: string
+          id?: string
+          natureza?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      indicacoes: {
+        Row: {
+          cidade: string
+          consultor_id: string | null
+          consultor_nome: string | null
+          created_at: string
+          descricao_situacao: string | null
+          id: string
+          natureza: string
+          nome_cliente: string
+          nome_corretor: string
+          status: string
+          tel_cliente: string
+          unidade_corretor: string
+        }
+        Insert: {
+          cidade: string
+          consultor_id?: string | null
+          consultor_nome?: string | null
+          created_at?: string
+          descricao_situacao?: string | null
+          id?: string
+          natureza: string
+          nome_cliente: string
+          nome_corretor: string
+          status?: string
+          tel_cliente: string
+          unidade_corretor: string
+        }
+        Update: {
+          cidade?: string
+          consultor_id?: string | null
+          consultor_nome?: string | null
+          created_at?: string
+          descricao_situacao?: string | null
+          id?: string
+          natureza?: string
+          nome_cliente?: string
+          nome_corretor?: string
+          status?: string
+          tel_cliente?: string
+          unidade_corretor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "indicacoes_consultor_id_fkey"
+            columns: ["consultor_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
