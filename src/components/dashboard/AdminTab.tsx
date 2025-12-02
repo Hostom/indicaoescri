@@ -9,34 +9,52 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, Trash2, Shield, Eye, EyeOff } from "lucide-react";
-import { Administrador, getAdministradores, adicionarAdministrador, removerAdministrador } from "@/lib/supabase-helpers";
+import { Plus, Trash2, Shield } from "lucide-react";
+import { AdminUser, getAdminUsers, createAdminUser, removeAdminUser } from "@/lib/supabase-helpers";
+import { z } from "zod";
 
 const cidades = ['Balneario Camboriu', 'Itajai', 'Itapema'];
 
+const newAdminSchema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+  nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  role: z.enum(["DIRETOR", "GERENTE"]),
+  cidades: z.array(z.string()),
+}).refine((data) => {
+  if (data.role === "GERENTE" && data.cidades.length === 0) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Selecione pelo menos uma cidade para o gerente",
+  path: ["cidades"],
+});
+
 const AdminTab = () => {
-  const [administradores, setAdministradores] = useState<Administrador[]>([]);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [openModal, setOpenModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [novoAdmin, setNovoAdmin] = useState({
+    email: "",
+    password: "",
     nome: "",
-    senha: "",
-    tipo: "GERENTE",
+    role: "GERENTE" as "DIRETOR" | "GERENTE",
     cidades: [] as string[]
   });
 
-  const loadAdministradores = async () => {
+  const loadAdminUsers = async () => {
     try {
-      const data = await getAdministradores();
-      setAdministradores(data);
+      const data = await getAdminUsers();
+      setAdminUsers(data);
     } catch (error) {
       toast.error("Erro ao carregar administradores");
     }
   };
 
   useEffect(() => {
-    loadAdministradores();
+    loadAdminUsers();
   }, []);
 
   const handleCidadeToggle = (cidade: string, checked: boolean) => {
@@ -47,45 +65,52 @@ const AdminTab = () => {
     }
   };
 
-  const handleAdicionarAdmin = async () => {
-    if (!novoAdmin.nome || !novoAdmin.senha || !novoAdmin.tipo) {
-      toast.error("Preencha todos os campos obrigatórios");
-      return;
+  const validateForm = () => {
+    try {
+      newAdminSchema.parse(novoAdmin);
+      setErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          const path = err.path.join(".");
+          fieldErrors[path] = err.message;
+        });
+        setErrors(fieldErrors);
+      }
+      return false;
     }
+  };
 
-    if (novoAdmin.tipo === 'GERENTE' && novoAdmin.cidades.length === 0) {
-      toast.error("Selecione pelo menos uma cidade para o gerente");
-      return;
-    }
+  const handleAdicionarAdmin = async () => {
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
-      await adicionarAdministrador(novoAdmin);
-      toast.success("Administrador adicionado com sucesso!");
+      await createAdminUser(novoAdmin);
+      toast.success("Administrador criado com sucesso!");
       setOpenModal(false);
-      setNovoAdmin({ nome: "", senha: "", tipo: "GERENTE", cidades: [] });
-      loadAdministradores();
-    } catch (error) {
-      toast.error("Erro ao adicionar administrador");
+      setNovoAdmin({ email: "", password: "", nome: "", role: "GERENTE", cidades: [] });
+      setErrors({});
+      loadAdminUsers();
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao criar administrador");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRemoverAdmin = async (admin: Administrador) => {
+  const handleRemoverAdmin = async (admin: AdminUser) => {
     if (!confirm(`Tem certeza que deseja remover ${admin.nome}?`)) return;
 
     try {
-      await removerAdministrador(admin.id);
+      await removeAdminUser(admin.id);
       toast.success("Administrador removido com sucesso!");
-      loadAdministradores();
-    } catch (error) {
-      toast.error("Erro ao remover administrador");
+      loadAdminUsers();
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao remover administrador");
     }
-  };
-
-  const togglePasswordVisibility = (id: string) => {
-    setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   return (
@@ -108,26 +133,41 @@ const AdminTab = () => {
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={novoAdmin.email}
+                  onChange={(e) => setNovoAdmin({ ...novoAdmin, email: e.target.value })}
+                  placeholder="admin@exemplo.com"
+                />
+                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label>Senha</Label>
+                <Input
+                  type="password"
+                  value={novoAdmin.password}
+                  onChange={(e) => setNovoAdmin({ ...novoAdmin, password: e.target.value })}
+                  placeholder="Mínimo 6 caracteres"
+                />
+                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+              </div>
+              <div className="space-y-2">
                 <Label>Nome</Label>
                 <Input
                   value={novoAdmin.nome}
                   onChange={(e) => setNovoAdmin({ ...novoAdmin, nome: e.target.value })}
                   placeholder="Ex: Gerente Itapema"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label>Senha de Acesso</Label>
-                <Input
-                  value={novoAdmin.senha}
-                  onChange={(e) => setNovoAdmin({ ...novoAdmin, senha: e.target.value })}
-                  placeholder="Senha para login no dashboard"
-                />
+                {errors.nome && <p className="text-sm text-destructive">{errors.nome}</p>}
               </div>
               <div className="space-y-2">
                 <Label>Tipo</Label>
                 <Select
-                  value={novoAdmin.tipo}
-                  onValueChange={(value) => setNovoAdmin({ ...novoAdmin, tipo: value, cidades: value === 'DIRETOR' ? [] : novoAdmin.cidades })}
+                  value={novoAdmin.role}
+                  onValueChange={(value: "DIRETOR" | "GERENTE") => 
+                    setNovoAdmin({ ...novoAdmin, role: value, cidades: value === 'DIRETOR' ? [] : novoAdmin.cidades })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -139,7 +179,7 @@ const AdminTab = () => {
                 </Select>
               </div>
               
-              {novoAdmin.tipo === 'GERENTE' && (
+              {novoAdmin.role === 'GERENTE' && (
                 <div className="space-y-2">
                   <Label>Cidades com Acesso</Label>
                   <div className="space-y-2 p-3 border rounded-md">
@@ -156,12 +196,13 @@ const AdminTab = () => {
                       </div>
                     ))}
                   </div>
+                  {errors.cidades && <p className="text-sm text-destructive">{errors.cidades}</p>}
                 </div>
               )}
 
               <div className="flex gap-4 pt-4">
                 <Button onClick={handleAdicionarAdmin} className="flex-1" disabled={loading}>
-                  {loading ? "Adicionando..." : "Adicionar"}
+                  {loading ? "Criando..." : "Criar Administrador"}
                 </Button>
                 <Button variant="secondary" onClick={() => setOpenModal(false)} className="flex-1">
                   Cancelar
@@ -178,47 +219,28 @@ const AdminTab = () => {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Tipo</TableHead>
-                <TableHead>Senha</TableHead>
                 <TableHead>Cidades com Acesso</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {administradores.length === 0 ? (
+              {adminUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                     Nenhum administrador cadastrado
                   </TableCell>
                 </TableRow>
               ) : (
-                administradores.map((admin) => (
+                adminUsers.map((admin) => (
                   <TableRow key={admin.id}>
                     <TableCell className="font-medium">{admin.nome}</TableCell>
                     <TableCell>
-                      <Badge variant={admin.tipo === 'DIRETOR' ? 'default' : 'secondary'}>
-                        {admin.tipo}
+                      <Badge variant={admin.role === 'DIRETOR' ? 'default' : 'secondary'}>
+                        {admin.role}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <code className="bg-muted px-2 py-1 rounded text-sm">
-                          {showPasswords[admin.id] ? admin.senha : '••••••••'}
-                        </code>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => togglePasswordVisibility(admin.id)}
-                        >
-                          {showPasswords[admin.id] ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {admin.tipo === 'DIRETOR' ? (
+                      {admin.role === 'DIRETOR' ? (
                         <span className="text-muted-foreground">Todas</span>
                       ) : (
                         admin.cidades?.join(', ') || '-'
