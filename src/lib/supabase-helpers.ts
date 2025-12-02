@@ -195,6 +195,15 @@ export async function atualizarStatusIndicacao(id: string, status: string): Prom
   if (error) throw error;
 }
 
+export async function removerIndicacao(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('indicacoes')
+    .delete()
+    .eq('id', id);
+  
+  if (error) throw error;
+}
+
 export async function toggleConsultorAtivo(id: string, ativo: boolean): Promise<void> {
   const { error } = await supabase
     .from('consultores')
