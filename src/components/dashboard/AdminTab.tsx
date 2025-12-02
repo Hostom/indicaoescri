@@ -8,10 +8,23 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
-import { Plus, Trash2, Shield } from "lucide-react";
+import { Plus, Trash2, Shield, UserCog } from "lucide-react";
 import { AdminUser, getAdminUsers, createAdminUser, removeAdminUser } from "@/lib/supabase-helpers";
 import { z } from "zod";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const cidades = ['Balneario Camboriu', 'Itajai', 'Itapema'];
 
@@ -30,6 +43,10 @@ const newAdminSchema = z.object({
   message: "Selecione pelo menos uma cidade para o gerente",
   path: ["cidades"],
 });
+
+const getInitials = (name: string) => {
+  return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+};
 
 const AdminTab = () => {
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
@@ -102,8 +119,6 @@ const AdminTab = () => {
   };
 
   const handleRemoverAdmin = async (admin: AdminUser) => {
-    if (!confirm(`Tem certeza que deseja remover ${admin.nome}?`)) return;
-
     try {
       await removeAdminUser(admin.id);
       toast.success("Administrador removido com sucesso!");
@@ -115,15 +130,15 @@ const AdminTab = () => {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <CardTitle className="flex items-center gap-2">
-          <Shield className="w-5 h-5" />
+          <Shield className="w-5 h-5 text-primary" />
           Gerenciar Administradores
         </CardTitle>
         <Dialog open={openModal} onOpenChange={setOpenModal}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90">
-              <Plus className="w-4 h-4 mr-2" />
+            <Button className="gap-2">
+              <Plus className="w-4 h-4" />
               Novo Administrador
             </Button>
           </DialogTrigger>
@@ -133,7 +148,7 @@ const AdminTab = () => {
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label>Email <span className="text-destructive">*</span></Label>
                 <Input
                   type="email"
                   value={novoAdmin.email}
@@ -143,7 +158,7 @@ const AdminTab = () => {
                 {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Senha</Label>
+                <Label>Senha <span className="text-destructive">*</span></Label>
                 <Input
                   type="password"
                   value={novoAdmin.password}
@@ -153,7 +168,7 @@ const AdminTab = () => {
                 {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Nome</Label>
+                <Label>Nome <span className="text-destructive">*</span></Label>
                 <Input
                   value={novoAdmin.nome}
                   onChange={(e) => setNovoAdmin({ ...novoAdmin, nome: e.target.value })}
@@ -182,7 +197,7 @@ const AdminTab = () => {
               {novoAdmin.role === 'GERENTE' && (
                 <div className="space-y-2">
                   <Label>Cidades com Acesso</Label>
-                  <div className="space-y-2 p-3 border rounded-md">
+                  <div className="space-y-2 p-3 border rounded-lg bg-muted/30">
                     {cidades.map((cidade) => (
                       <div key={cidade} className="flex items-center space-x-2">
                         <Checkbox
@@ -191,7 +206,7 @@ const AdminTab = () => {
                           onCheckedChange={(checked) => handleCidadeToggle(cidade, checked as boolean)}
                         />
                         <label htmlFor={cidade} className="text-sm cursor-pointer">
-                          {cidade}
+                          {cidade === 'Balneario Camboriu' ? 'Balneário Camboriú' : cidade}
                         </label>
                       </div>
                     ))}
@@ -200,11 +215,11 @@ const AdminTab = () => {
                 </div>
               )}
 
-              <div className="flex gap-4 pt-4">
+              <div className="flex gap-2 pt-4">
                 <Button onClick={handleAdicionarAdmin} className="flex-1" disabled={loading}>
                   {loading ? "Criando..." : "Criar Administrador"}
                 </Button>
-                <Button variant="secondary" onClick={() => setOpenModal(false)} className="flex-1">
+                <Button variant="outline" onClick={() => setOpenModal(false)} className="flex-1">
                   Cancelar
                 </Button>
               </div>
@@ -213,27 +228,42 @@ const AdminTab = () => {
         </Dialog>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Cidades com Acesso</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {adminUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    Nenhum administrador cadastrado
-                  </TableCell>
+        {adminUsers.length === 0 ? (
+          <EmptyState
+            icon={UserCog}
+            title="Nenhum administrador cadastrado"
+            description="Adicione administradores para gerenciar o sistema"
+            action={
+              <Button onClick={() => setOpenModal(true)} className="gap-2">
+                <Plus className="w-4 h-4" />
+                Novo Administrador
+              </Button>
+            }
+          />
+        ) : (
+          <div className="overflow-x-auto rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead>Administrador</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Cidades com Acesso</TableHead>
+                  <TableHead className="w-[80px]">Ações</TableHead>
                 </TableRow>
-              ) : (
-                adminUsers.map((admin) => (
-                  <TableRow key={admin.id}>
-                    <TableCell className="font-medium">{admin.nome}</TableCell>
+              </TableHeader>
+              <TableBody>
+                {adminUsers.map((admin) => (
+                  <TableRow key={admin.id} className="hover:bg-muted/30 transition-colors">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9">
+                          <AvatarFallback className={`text-sm font-medium ${admin.role === 'DIRETOR' ? 'bg-primary/10 text-primary' : 'bg-secondary text-secondary-foreground'}`}>
+                            {getInitials(admin.nome)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium">{admin.nome}</span>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={admin.role === 'DIRETOR' ? 'default' : 'secondary'}>
                         {admin.role}
@@ -241,26 +271,47 @@ const AdminTab = () => {
                     </TableCell>
                     <TableCell>
                       {admin.role === 'DIRETOR' ? (
-                        <span className="text-muted-foreground">Todas</span>
+                        <span className="text-muted-foreground">Todas as cidades</span>
                       ) : (
-                        admin.cidades?.join(', ') || '-'
+                        <span className="text-sm">{admin.cidades?.map(c => c === 'Balneario Camboriu' ? 'BC' : c).join(', ') || '-'}</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleRemoverAdmin(admin)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja remover <strong>{admin.nome}</strong>? Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleRemoverAdmin(admin)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
