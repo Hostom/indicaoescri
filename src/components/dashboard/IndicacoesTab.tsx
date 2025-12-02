@@ -23,7 +23,7 @@ import {
 
 interface IndicacoesTabProps {
   indicacoes: Indicacao[];
-  onRefresh: () => void;
+  onRefresh: () => Promise<void> | void;
   onVerDescricao: (descricao: string) => void;
 }
 
@@ -66,7 +66,7 @@ const IndicacoesTab = ({ indicacoes, onRefresh, onVerDescricao }: IndicacoesTabP
     try {
       await removerIndicacao(id);
       toast.success("Indicação removida!");
-      onRefresh();
+      await onRefresh();
     } catch (error) {
       toast.error("Erro ao remover indicação");
     } finally {

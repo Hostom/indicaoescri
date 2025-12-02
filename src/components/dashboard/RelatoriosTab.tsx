@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { FileDown, FileSpreadsheet, RotateCcw } from "lucide-react";
+import { FileDown, FileText, RotateCcw } from "lucide-react";
 import { Indicacao, Consultor } from "@/lib/supabase-helpers";
 import { format, isAfter, isBefore, parseISO, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface RelatoriosTabProps {
   indicacoes: Indicacao[];
@@ -100,6 +102,44 @@ const RelatoriosTab = ({ indicacoes, consultores }: RelatoriosTabProps) => {
     link.download = `relatorio_indicacoes_${format(new Date(), "yyyy-MM-dd")}.csv`;
     link.click();
     toast.success("CSV exportado com sucesso!");
+  };
+
+  const exportToPDF = () => {
+    if (filteredIndicacoes.length === 0) {
+      toast.error("Nenhum dado para exportar");
+      return;
+    }
+
+    const doc = new jsPDF();
+    
+    // Título
+    doc.setFontSize(18);
+    doc.text("Relatório de Indicações", 14, 22);
+    doc.setFontSize(10);
+    doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })}`, 14, 30);
+
+    // Tabela
+    const headers = [["Data", "Consultor", "Corretor", "Cliente", "Cidade", "Natureza", "Status"]];
+    const rows = filteredIndicacoes.map((i) => [
+      format(new Date(i.created_at), "dd/MM/yyyy"),
+      i.consultor_nome || "-",
+      i.nome_corretor,
+      i.nome_cliente,
+      i.cidade,
+      i.natureza,
+      i.status
+    ]);
+
+    autoTable(doc, {
+      head: headers,
+      body: rows,
+      startY: 38,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [41, 128, 185] },
+    });
+
+    doc.save(`relatorio_indicacoes_${format(new Date(), "yyyy-MM-dd")}.pdf`);
+    toast.success("PDF exportado com sucesso!");
   };
 
   const getStatusColor = (status: string) => {
@@ -214,6 +254,10 @@ const RelatoriosTab = ({ indicacoes, consultores }: RelatoriosTabProps) => {
             <Button variant="outline" onClick={exportToCSV} disabled={filteredIndicacoes.length === 0}>
               <FileDown className="w-4 h-4 mr-2" />
               Exportar CSV
+            </Button>
+            <Button variant="outline" onClick={exportToPDF} disabled={filteredIndicacoes.length === 0}>
+              <FileText className="w-4 h-4 mr-2" />
+              Exportar PDF
             </Button>
             <Button variant="secondary" onClick={handleLimparFiltros}>
               <RotateCcw className="w-4 h-4 mr-2" />
