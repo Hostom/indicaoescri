@@ -140,14 +140,14 @@ const RelatoriosTab = ({ indicacoes, consultores }: RelatoriosTabProps) => {
             <div className="space-y-2">
               <Label>Consultor</Label>
               <Select
-                value={filtros.consultor}
-                onValueChange={(value) => setFiltros({ ...filtros, consultor: value })}
+                value={filtros.consultor || "all"}
+                onValueChange={(value) => setFiltros({ ...filtros, consultor: value === "all" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todos os consultores" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os consultores</SelectItem>
+                  <SelectItem value="all">Todos os consultores</SelectItem>
                   {consultores.map((c) => (
                     <SelectItem key={c.id} value={c.nome}>{c.nome}</SelectItem>
                   ))}
@@ -157,14 +157,14 @@ const RelatoriosTab = ({ indicacoes, consultores }: RelatoriosTabProps) => {
             <div className="space-y-2">
               <Label>Cidade</Label>
               <Select
-                value={filtros.cidade}
-                onValueChange={(value) => setFiltros({ ...filtros, cidade: value })}
+                value={filtros.cidade || "all"}
+                onValueChange={(value) => setFiltros({ ...filtros, cidade: value === "all" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todas as cidades" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas as cidades</SelectItem>
+                  <SelectItem value="all">Todas as cidades</SelectItem>
                   {cidades.map((c) => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
@@ -174,14 +174,14 @@ const RelatoriosTab = ({ indicacoes, consultores }: RelatoriosTabProps) => {
             <div className="space-y-2">
               <Label>Natureza</Label>
               <Select
-                value={filtros.natureza}
-                onValueChange={(value) => setFiltros({ ...filtros, natureza: value })}
+                value={filtros.natureza || "all"}
+                onValueChange={(value) => setFiltros({ ...filtros, natureza: value === "all" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todas as naturezas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas as naturezas</SelectItem>
+                  <SelectItem value="all">Todas as naturezas</SelectItem>
                   <SelectItem value="Locacao">Locação</SelectItem>
                   <SelectItem value="Captacao">Captação</SelectItem>
                   <SelectItem value="Venda">Venda</SelectItem>
@@ -191,14 +191,14 @@ const RelatoriosTab = ({ indicacoes, consultores }: RelatoriosTabProps) => {
             <div className="space-y-2">
               <Label>Status</Label>
               <Select
-                value={filtros.status}
-                onValueChange={(value) => setFiltros({ ...filtros, status: value })}
+                value={filtros.status || "all"}
+                onValueChange={(value) => setFiltros({ ...filtros, status: value === "all" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todos os status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os status</SelectItem>
+                  <SelectItem value="all">Todos os status</SelectItem>
                   <SelectItem value="PENDENTE">PENDENTE</SelectItem>
                   <SelectItem value="EM ATENDIMENTO">EM ATENDIMENTO</SelectItem>
                   <SelectItem value="NEGÓCIO FECHADO">NEGÓCIO FECHADO</SelectItem>
