@@ -5,10 +5,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Eye } from "lucide-react";
-import { Indicacao, atualizarStatusIndicacao } from "@/lib/supabase-helpers";
+import { Eye, Trash2 } from "lucide-react";
+import { Indicacao, atualizarStatusIndicacao, removerIndicacao } from "@/lib/supabase-helpers";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface IndicacoesTabProps {
   indicacoes: Indicacao[];
@@ -35,6 +46,7 @@ const getStatusColor = (status: string) => {
 
 const IndicacoesTab = ({ indicacoes, onRefresh, onVerDescricao }: IndicacoesTabProps) => {
   const [updating, setUpdating] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     setUpdating(id);
@@ -46,6 +58,19 @@ const IndicacoesTab = ({ indicacoes, onRefresh, onVerDescricao }: IndicacoesTabP
       toast.error("Erro ao atualizar status");
     } finally {
       setUpdating(null);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeleting(id);
+    try {
+      await removerIndicacao(id);
+      toast.success("Indicação removida!");
+      onRefresh();
+    } catch (error) {
+      toast.error("Erro ao remover indicação");
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -65,6 +90,7 @@ const IndicacoesTab = ({ indicacoes, onRefresh, onVerDescricao }: IndicacoesTabP
                 <TableHead>Consultor Atribuído</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -121,6 +147,37 @@ const IndicacoesTab = ({ indicacoes, onRefresh, onVerDescricao }: IndicacoesTabP
                           ))}
                         </SelectContent>
                       </Select>
+                    </TableCell>
+                    <TableCell>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            disabled={deleting === indicacao.id}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja excluir a indicação de <strong>{indicacao.nome_cliente}</strong>? Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(indicacao.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))
