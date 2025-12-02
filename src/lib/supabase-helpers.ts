@@ -115,7 +115,41 @@ export async function criarIndicacao(dados: {
     .update({ data_ultima_indicacao: new Date().toISOString() })
     .eq('id', consultor.id);
   
+  // Enviar email para o consultor (não bloqueia o retorno)
+  enviarEmailIndicacao({
+    consultorEmail: consultor.email,
+    consultorNome: consultor.nome,
+    nomeCliente: dados.nome_cliente,
+    telCliente: dados.tel_cliente,
+    nomeCorretor: dados.nome_corretor,
+    unidadeCorretor: dados.unidade_corretor,
+    natureza: dados.natureza,
+    cidade: dados.cidade,
+    descricaoSituacao: dados.descricao_situacao,
+  }).catch(err => console.error('Erro ao enviar email:', err));
+  
   return { indicacao, consultor };
+}
+
+async function enviarEmailIndicacao(dados: {
+  consultorEmail: string;
+  consultorNome: string;
+  nomeCliente: string;
+  telCliente: string;
+  nomeCorretor: string;
+  unidadeCorretor: string;
+  natureza: string;
+  cidade: string;
+  descricaoSituacao?: string;
+}): Promise<void> {
+  const { error } = await supabase.functions.invoke('send-indicacao-email', {
+    body: dados,
+  });
+  
+  if (error) {
+    console.error('Erro ao chamar edge function de email:', error);
+    throw error;
+  }
 }
 
 export async function getIndicacoes(userRole?: UserRole): Promise<Indicacao[]> {
