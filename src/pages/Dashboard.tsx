@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { RefreshCw, LogOut, Shield } from "lucide-react";
-import { getIndicacoes, getConsultores, Indicacao, Consultor, verificarSenha, UserRole } from "@/lib/supabase-helpers";
+import { getIndicacoes, getConsultores, Indicacao, Consultor, getUserRole, UserRole } from "@/lib/supabase-helpers";
+import { supabase } from "@/integrations/supabase/client";
 import logoCri from "@/assets/logo-cri.png";
 import IndicacoesTab from "@/components/dashboard/IndicacoesTab";
 import ConsultoresTab from "@/components/dashboard/ConsultoresTab";
@@ -16,10 +16,10 @@ import RelatoriosTab from "@/components/dashboard/RelatoriosTab";
 import AdminTab from "@/components/dashboard/AdminTab";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [password, setPassword] = useState("");
-  const [passwordError, setPasswordError] = useState(false);
   const [indicacoes, setIndicacoes] = useState<Indicacao[]>([]);
   const [consultores, setConsultores] = useState<Consultor[]>([]);
   const [loading, setLoading] = useState(false);
@@ -27,24 +27,59 @@ const Dashboard = () => {
   // Modal de descrição
   const [descricaoModal, setDescricaoModal] = useState<string | null>(null);
 
-  const handleLogin = async () => {
-    const role = await verificarSenha(password);
-    if (role) {
-      setIsAuthenticated(true);
-      setUserRole(role);
-      setPasswordError(false);
-      toast.success(`Bem-vindo, ${role.nome}!`);
-    } else {
-      setPasswordError(true);
+  useEffect(() => {
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session?.user) {
+        setIsAuthenticated(false);
+        setUserRole(null);
+        navigate("/auth");
+      } else {
+        setIsAuthenticated(true);
+        // Defer role fetch to avoid deadlock
+        setTimeout(() => {
+          fetchUserRole();
+        }, 0);
+      }
+      setIsLoading(false);
+    });
+
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session?.user) {
+        setIsAuthenticated(false);
+        navigate("/auth");
+      } else {
+        setIsAuthenticated(true);
+        fetchUserRole();
+      }
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const fetchUserRole = async () => {
+    try {
+      const role = await getUserRole();
+      if (role) {
+        setUserRole(role);
+      } else {
+        // User is authenticated but has no role - show message
+        toast.error("Você não tem permissão para acessar o dashboard. Contate um administrador.");
+      }
+    } catch (error) {
+      toast.error("Erro ao carregar permissões");
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setIsAuthenticated(false);
     setUserRole(null);
-    setPassword("");
     setIndicacoes([]);
     setConsultores([]);
+    navigate("/auth");
   };
 
   const loadData = async () => {
@@ -71,35 +106,46 @@ const Dashboard = () => {
     }
   }, [isAuthenticated, userRole]);
 
-  // Modal de Login
-  if (!isAuthenticated) {
+  // Loading state
+  if (isLoading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <Card className="w-full max-w-sm">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not authenticated - will redirect
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  // No role assigned
+  if (!userRole) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <img src={logoCri} alt="Logo ADIM" className="mx-auto h-12 mb-4" />
-            <CardTitle className="text-2xl">Acesso Restrito</CardTitle>
+            <CardTitle>Acesso Negado</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-center text-muted-foreground">
-              Insira a senha do dashboard para continuar.
+          <CardContent className="text-center space-y-4">
+            <p className="text-muted-foreground">
+              Sua conta não possui permissões para acessar o dashboard.
+              Entre em contato com um administrador.
             </p>
-            <Input
-              type="password"
-              placeholder="Senha"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-            />
-            <Button onClick={handleLogin} className="w-full">
-              Entrar
-            </Button>
-            {passwordError && (
-              <p className="text-destructive text-sm text-center">Senha incorreta.</p>
-            )}
-            <Link to="/" className="block text-center text-primary hover:underline text-sm">
-              ← Voltar ao formulário
-            </Link>
+            <div className="flex gap-2 justify-center">
+              <Link to="/">
+                <Button variant="outline">← Voltar ao formulário</Button>
+              </Link>
+              <Button variant="destructive" onClick={handleLogout}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -116,11 +162,11 @@ const Dashboard = () => {
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-foreground">Dashboard de Indicações</h1>
               <div className="flex items-center gap-2 mt-1">
-                <Badge variant={userRole?.tipo === 'DIRETOR' ? 'default' : 'secondary'}>
+                <Badge variant={userRole.tipo === 'DIRETOR' ? 'default' : 'secondary'}>
                   <Shield className="w-3 h-3 mr-1" />
-                  {userRole?.nome}
+                  {userRole.nome}
                 </Badge>
-                {userRole?.tipo === 'GERENTE' && (
+                {userRole.tipo === 'GERENTE' && (
                   <span className="text-sm text-muted-foreground">
                     ({userRole.cidades.join(', ')})
                   </span>
@@ -149,7 +195,7 @@ const Dashboard = () => {
             <TabsTrigger value="indicacoes" className="px-6">Indicações</TabsTrigger>
             <TabsTrigger value="consultores" className="px-6">Consultores</TabsTrigger>
             <TabsTrigger value="relatorios" className="px-6">Relatórios</TabsTrigger>
-            {userRole?.tipo === 'DIRETOR' && (
+            {userRole.tipo === 'DIRETOR' && (
               <TabsTrigger value="admin" className="px-6">Administradores</TabsTrigger>
             )}
           </TabsList>
@@ -177,7 +223,7 @@ const Dashboard = () => {
             />
           </TabsContent>
 
-          {userRole?.tipo === 'DIRETOR' && (
+          {userRole.tipo === 'DIRETOR' && (
             <TabsContent value="admin">
               <AdminTab />
             </TabsContent>

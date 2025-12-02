@@ -26,35 +26,38 @@ export interface Indicacao {
   created_at: string;
 }
 
-export interface Administrador {
-  id: string;
-  nome: string;
-  senha: string;
-  tipo: 'DIRETOR' | 'GERENTE';
-  cidades: string[];
-  created_at: string;
-}
-
 export interface UserRole {
   tipo: 'DIRETOR' | 'GERENTE';
   cidades: string[];
   nome: string;
+  user_id: string;
 }
 
-export async function verificarSenha(senha: string): Promise<UserRole | null> {
+// Get current user's role from user_roles table
+export async function getUserRole(): Promise<UserRole | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
   const { data, error } = await supabase
-    .from('administradores')
+    .from('user_roles')
     .select('*')
-    .eq('senha', senha)
+    .eq('user_id', user.id)
     .maybeSingle();
   
   if (error || !data) return null;
   
   return {
-    tipo: data.tipo as 'DIRETOR' | 'GERENTE',
+    tipo: data.role as 'DIRETOR' | 'GERENTE',
     cidades: data.cidades || [],
-    nome: data.nome
+    nome: data.nome,
+    user_id: data.user_id
   };
+}
+
+// Check if current user is a director
+export async function isDirector(): Promise<boolean> {
+  const role = await getUserRole();
+  return role?.tipo === 'DIRETOR';
 }
 
 export async function getConsultoresAtivos(natureza: string, cidade: string): Promise<Consultor[]> {
@@ -109,11 +112,13 @@ export async function criarIndicacao(dados: {
   
   if (indicacaoError) throw indicacaoError;
   
-  // Atualizar data da última indicação do consultor
-  await supabase
-    .from('consultores')
-    .update({ data_ultima_indicacao: new Date().toISOString() })
-    .eq('id', consultor.id);
+  // Update consultant's last indication date via edge function
+  // This uses service role to bypass RLS
+  await supabase.functions.invoke('update-consultor-indicacao', {
+    body: { consultorId: consultor.id }
+  }).catch(() => {
+    // Non-blocking - don't fail the entire operation
+  });
   
   // Enviar email para o consultor (não bloqueia o retorno)
   enviarEmailIndicacao({
@@ -126,7 +131,9 @@ export async function criarIndicacao(dados: {
     natureza: dados.natureza,
     cidade: dados.cidade,
     descricaoSituacao: dados.descricao_situacao,
-  }).catch(err => console.error('Erro ao enviar email:', err));
+  }).catch(() => {
+    // Silent fail for email
+  });
   
   return { indicacao, consultor };
 }
@@ -147,7 +154,6 @@ async function enviarEmailIndicacao(dados: {
   });
   
   if (error) {
-    console.error('Erro ao chamar edge function de email:', error);
     throw error;
   }
 }
@@ -238,37 +244,54 @@ export async function removerConsultor(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function getAdministradores(): Promise<Administrador[]> {
-  const { data, error } = await supabase
-    .from('administradores')
-    .select('*')
-    .order('tipo', { ascending: true });
-  
-  if (error) throw error;
-  return (data || []) as Administrador[];
-}
-
-export async function adicionarAdministrador(dados: {
+// New user management functions using Supabase Auth
+export interface AdminUser {
+  id: string;
+  email: string;
   nome: string;
-  senha: string;
-  tipo: string;
+  role: 'DIRETOR' | 'GERENTE';
   cidades: string[];
-}): Promise<Administrador> {
-  const { data, error } = await supabase
-    .from('administradores')
-    .insert(dados)
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data as Administrador;
+  created_at: string;
 }
 
-export async function removerAdministrador(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('administradores')
-    .delete()
-    .eq('id', id);
+export async function getAdminUsers(): Promise<AdminUser[]> {
+  const { data, error } = await supabase
+    .from('user_roles')
+    .select('*')
+    .order('role', { ascending: true });
+  
+  if (error) throw error;
+  
+  return (data || []).map(item => ({
+    id: item.id,
+    email: '', // Email comes from auth.users, not accessible directly
+    nome: item.nome,
+    role: item.role as 'DIRETOR' | 'GERENTE',
+    cidades: item.cidades || [],
+    created_at: item.created_at
+  }));
+}
+
+export async function createAdminUser(dados: {
+  email: string;
+  password: string;
+  nome: string;
+  role: 'DIRETOR' | 'GERENTE';
+  cidades: string[];
+}): Promise<void> {
+  // Create the user via edge function (uses service role)
+  const { error } = await supabase.functions.invoke('create-admin-user', {
+    body: dados
+  });
+  
+  if (error) throw error;
+}
+
+export async function removeAdminUser(userId: string): Promise<void> {
+  // Remove via edge function (uses service role)
+  const { error } = await supabase.functions.invoke('remove-admin-user', {
+    body: { userId }
+  });
   
   if (error) throw error;
 }

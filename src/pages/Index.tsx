@@ -67,7 +67,7 @@ const Index = () => {
           <CardDescription className="text-muted-foreground">
             Preencha os campos para acionar a roleta de consultores.
           </CardDescription>
-          <Link to="/dashboard" className="text-primary hover:underline text-sm mt-2 inline-block">
+          <Link to="/auth" className="text-primary hover:underline text-sm mt-2 inline-block">
             Acessar Dashboard →
           </Link>
         </CardHeader>
