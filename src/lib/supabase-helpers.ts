@@ -26,6 +26,37 @@ export interface Indicacao {
   created_at: string;
 }
 
+export interface Administrador {
+  id: string;
+  nome: string;
+  senha: string;
+  tipo: 'DIRETOR' | 'GERENTE';
+  cidades: string[];
+  created_at: string;
+}
+
+export interface UserRole {
+  tipo: 'DIRETOR' | 'GERENTE';
+  cidades: string[];
+  nome: string;
+}
+
+export async function verificarSenha(senha: string): Promise<UserRole | null> {
+  const { data, error } = await supabase
+    .from('administradores')
+    .select('*')
+    .eq('senha', senha)
+    .maybeSingle();
+  
+  if (error || !data) return null;
+  
+  return {
+    tipo: data.tipo as 'DIRETOR' | 'GERENTE',
+    cidades: data.cidades || [],
+    nome: data.nome
+  };
+}
+
 export async function getConsultoresAtivos(natureza: string, cidade: string): Promise<Consultor[]> {
   const { data, error } = await supabase
     .from('consultores')
@@ -87,21 +118,35 @@ export async function criarIndicacao(dados: {
   return { indicacao, consultor };
 }
 
-export async function getIndicacoes(): Promise<Indicacao[]> {
-  const { data, error } = await supabase
+export async function getIndicacoes(userRole?: UserRole): Promise<Indicacao[]> {
+  let query = supabase
     .from('indicacoes')
     .select('*')
     .order('created_at', { ascending: false });
+  
+  // Filtrar por cidades se for GERENTE
+  if (userRole && userRole.tipo === 'GERENTE' && userRole.cidades.length > 0) {
+    query = query.in('cidade', userRole.cidades);
+  }
+  
+  const { data, error } = await query;
   
   if (error) throw error;
   return data || [];
 }
 
-export async function getConsultores(): Promise<Consultor[]> {
-  const { data, error } = await supabase
+export async function getConsultores(userRole?: UserRole): Promise<Consultor[]> {
+  let query = supabase
     .from('consultores')
     .select('*')
     .order('nome');
+  
+  // Filtrar por cidades se for GERENTE
+  if (userRole && userRole.tipo === 'GERENTE' && userRole.cidades.length > 0) {
+    query = query.in('cidade', userRole.cidades);
+  }
+  
+  const { data, error } = await query;
   
   if (error) throw error;
   return data || [];
@@ -144,6 +189,41 @@ export async function adicionarConsultor(dados: {
 export async function removerConsultor(id: string): Promise<void> {
   const { error } = await supabase
     .from('consultores')
+    .delete()
+    .eq('id', id);
+  
+  if (error) throw error;
+}
+
+export async function getAdministradores(): Promise<Administrador[]> {
+  const { data, error } = await supabase
+    .from('administradores')
+    .select('*')
+    .order('tipo', { ascending: true });
+  
+  if (error) throw error;
+  return (data || []) as Administrador[];
+}
+
+export async function adicionarAdministrador(dados: {
+  nome: string;
+  senha: string;
+  tipo: string;
+  cidades: string[];
+}): Promise<Administrador> {
+  const { data, error } = await supabase
+    .from('administradores')
+    .insert(dados)
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data as Administrador;
+}
+
+export async function removerAdministrador(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('administradores')
     .delete()
     .eq('id', id);
   
