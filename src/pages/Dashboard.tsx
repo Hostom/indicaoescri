@@ -5,18 +5,19 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { RefreshCw } from "lucide-react";
-import { getIndicacoes, getConsultores, Indicacao, Consultor } from "@/lib/supabase-helpers";
+import { RefreshCw, LogOut, Shield } from "lucide-react";
+import { getIndicacoes, getConsultores, Indicacao, Consultor, verificarSenha, UserRole } from "@/lib/supabase-helpers";
 import logoCri from "@/assets/logo-cri.png";
 import IndicacoesTab from "@/components/dashboard/IndicacoesTab";
 import ConsultoresTab from "@/components/dashboard/ConsultoresTab";
 import RelatoriosTab from "@/components/dashboard/RelatoriosTab";
-
-const DASHBOARD_PASSWORD = "admin123"; // Em produção, usar autenticação real
+import AdminTab from "@/components/dashboard/AdminTab";
 
 const Dashboard = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState(false);
   const [indicacoes, setIndicacoes] = useState<Indicacao[]>([]);
@@ -26,22 +27,34 @@ const Dashboard = () => {
   // Modal de descrição
   const [descricaoModal, setDescricaoModal] = useState<string | null>(null);
 
-  const handleLogin = () => {
-    if (password === DASHBOARD_PASSWORD) {
+  const handleLogin = async () => {
+    const role = await verificarSenha(password);
+    if (role) {
       setIsAuthenticated(true);
+      setUserRole(role);
       setPasswordError(false);
-      loadData();
+      toast.success(`Bem-vindo, ${role.nome}!`);
     } else {
       setPasswordError(true);
     }
   };
 
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setUserRole(null);
+    setPassword("");
+    setIndicacoes([]);
+    setConsultores([]);
+  };
+
   const loadData = async () => {
+    if (!userRole) return;
+    
     setLoading(true);
     try {
       const [indicacoesData, consultoresData] = await Promise.all([
-        getIndicacoes(),
-        getConsultores()
+        getIndicacoes(userRole),
+        getConsultores(userRole)
       ]);
       setIndicacoes(indicacoesData);
       setConsultores(consultoresData);
@@ -53,10 +66,10 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && userRole) {
       loadData();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, userRole]);
 
   // Modal de Login
   if (!isAuthenticated) {
@@ -100,15 +113,32 @@ const Dashboard = () => {
         <header className="flex flex-col md:flex-row justify-between md:items-center mb-8 gap-4">
           <div className="flex items-center gap-4">
             <img src={logoCri} alt="Logo ADIM" className="h-10" />
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground">Dashboard de Indicações</h1>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-foreground">Dashboard de Indicações</h1>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant={userRole?.tipo === 'DIRETOR' ? 'default' : 'secondary'}>
+                  <Shield className="w-3 h-3 mr-1" />
+                  {userRole?.nome}
+                </Badge>
+                {userRole?.tipo === 'GERENTE' && (
+                  <span className="text-sm text-muted-foreground">
+                    ({userRole.cidades.join(', ')})
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Link to="/">
               <Button variant="outline">← Formulário</Button>
             </Link>
             <Button onClick={loadData} disabled={loading}>
               <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Atualizar Dados
+              Atualizar
+            </Button>
+            <Button variant="destructive" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
             </Button>
           </div>
         </header>
@@ -116,9 +146,12 @@ const Dashboard = () => {
         {/* Tabs */}
         <Tabs defaultValue="indicacoes">
           <TabsList className="mb-6">
-            <TabsTrigger value="indicacoes" className="px-6">Gerenciar Indicações</TabsTrigger>
-            <TabsTrigger value="consultores" className="px-6">Gerenciar Consultores</TabsTrigger>
+            <TabsTrigger value="indicacoes" className="px-6">Indicações</TabsTrigger>
+            <TabsTrigger value="consultores" className="px-6">Consultores</TabsTrigger>
             <TabsTrigger value="relatorios" className="px-6">Relatórios</TabsTrigger>
+            {userRole?.tipo === 'DIRETOR' && (
+              <TabsTrigger value="admin" className="px-6">Administradores</TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="indicacoes">
@@ -133,6 +166,7 @@ const Dashboard = () => {
             <ConsultoresTab 
               consultores={consultores}
               onRefresh={loadData}
+              userRole={userRole}
             />
           </TabsContent>
 
@@ -142,6 +176,12 @@ const Dashboard = () => {
               consultores={consultores}
             />
           </TabsContent>
+
+          {userRole?.tipo === 'DIRETOR' && (
+            <TabsContent value="admin">
+              <AdminTab />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 

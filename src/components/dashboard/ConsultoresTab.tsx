@@ -9,14 +9,17 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
-import { Consultor, toggleConsultorAtivo, adicionarConsultor, removerConsultor } from "@/lib/supabase-helpers";
+import { Consultor, toggleConsultorAtivo, adicionarConsultor, removerConsultor, UserRole } from "@/lib/supabase-helpers";
 
 interface ConsultoresTabProps {
   consultores: Consultor[];
   onRefresh: () => void;
+  userRole?: UserRole | null;
 }
 
-const ConsultoresTab = ({ consultores, onRefresh }: ConsultoresTabProps) => {
+const todasCidades = ['Balneario Camboriu', 'Itajai', 'Itapema'];
+
+const ConsultoresTab = ({ consultores, onRefresh, userRole }: ConsultoresTabProps) => {
   const [openModal, setOpenModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [novoConsultor, setNovoConsultor] = useState({
@@ -25,6 +28,11 @@ const ConsultoresTab = ({ consultores, onRefresh }: ConsultoresTabProps) => {
     natureza: "",
     cidade: ""
   });
+
+  // Cidades disponíveis baseado no userRole
+  const cidadesDisponiveis = userRole?.tipo === 'DIRETOR' 
+    ? todasCidades 
+    : (userRole?.cidades || todasCidades);
 
   const handleToggleAtivo = async (consultor: Consultor) => {
     try {
@@ -125,9 +133,11 @@ const ConsultoresTab = ({ consultores, onRefresh }: ConsultoresTabProps) => {
                     <SelectValue placeholder="Selecione a cidade" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Balneario Camboriu">Balneário Camboriú</SelectItem>
-                    <SelectItem value="Itajai">Itajaí</SelectItem>
-                    <SelectItem value="Itapema">Itapema</SelectItem>
+                    {cidadesDisponiveis.map((cidade) => (
+                      <SelectItem key={cidade} value={cidade}>
+                        {cidade === 'Balneario Camboriu' ? 'Balneário Camboriú' : cidade}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

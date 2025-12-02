@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      administradores: {
+        Row: {
+          cidades: string[] | null
+          created_at: string
+          id: string
+          nome: string
+          senha: string
+          tipo: string
+        }
+        Insert: {
+          cidades?: string[] | null
+          created_at?: string
+          id?: string
+          nome: string
+          senha: string
+          tipo: string
+        }
+        Update: {
+          cidades?: string[] | null
+          created_at?: string
+          id?: string
+          nome?: string
+          senha?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       consultores: {
         Row: {
           ativo_na_roleta: boolean
