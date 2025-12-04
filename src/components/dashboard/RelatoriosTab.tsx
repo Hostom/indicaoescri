@@ -7,13 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { FileDown, FileText, RotateCcw } from "lucide-react";
+import { FileDown, FileText, RotateCcw, BarChart3 } from "lucide-react";
 import { Indicacao, Consultor } from "@/lib/supabase-helpers";
 import { format, isAfter, isBefore, parseISO, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-
+import AnalyticsCharts from "./AnalyticsCharts";
 interface RelatoriosTabProps {
   indicacoes: Indicacao[];
   consultores: Consultor[];
@@ -266,6 +266,17 @@ const RelatoriosTab = ({ indicacoes, consultores }: RelatoriosTabProps) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Analytics Charts */}
+      {showResults && filteredIndicacoes.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold">Analytics</h3>
+          </div>
+          <AnalyticsCharts indicacoes={filteredIndicacoes} consultores={consultores} />
+        </div>
+      )}
 
       {/* Resultados */}
       <Card>
