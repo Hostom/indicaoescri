@@ -32,13 +32,20 @@ const Index = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setShowRoulette(true);
 
     try {
+      // First try to create the indication (which includes selecting a consultant)
       const { consultor } = await criarIndicacao(formData);
-      setConsultorSelecionado(consultor.nome);
       
-      // Wait for roulette animation
+      if (!consultor || !consultor.nome) {
+        throw new Error('Consultor selecionado não possui nome válido');
+      }
+      
+      // Only show roulette animation after we know we have a valid consultant
+      setConsultorSelecionado(consultor.nome);
+      setShowRoulette(true);
+      
+      // Wait for roulette animation then show success
       setTimeout(() => {
         setShowRoulette(false);
         setShowSuccess(true);
@@ -57,8 +64,8 @@ const Index = () => {
       });
     } catch (error: any) {
       setShowRoulette(false);
+      setConsultorSelecionado("");
       toast.error(error.message || 'Erro ao processar indicação');
-    } finally {
       setLoading(false);
     }
   };
@@ -66,6 +73,7 @@ const Index = () => {
   const handleCloseSuccess = useCallback(() => {
     setShowSuccess(false);
     setConsultorSelecionado("");
+    setLoading(false);
   }, []);
 
   return (
