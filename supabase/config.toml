@@ -2,3 +2,9 @@ project_id = "butvucubbsmclhrtyhsr"
 
 [functions.send-indicacao-email]
 verify_jwt = false
+
+[functions.create-indicacao]
+verify_jwt = false
+
+[functions.update-consultor-indicacao]
+verify_jwt = false
