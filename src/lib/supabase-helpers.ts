@@ -91,39 +91,39 @@ export async function criarIndicacao(dados: {
   tel_cliente: string;
   descricao_situacao: string;
 }): Promise<{ indicacao: Indicacao; consultor: Consultor }> {
-  // Sortear consultor
-  const consultor = await sortearConsultor(dados.natureza, dados.cidade);
+  // A escolha do consultor e a criação da indicação acontecem no backend
+  // para evitar problemas de RLS no formulário público.
   
-  if (!consultor) {
-    throw new Error('Nenhum consultor disponível para esta natureza/cidade');
+  // Criar indicação (via backend function para evitar RLS no formulário público)
+  const { data, error: indicacaoError } = await supabase.functions.invoke('create-indicacao', {
+    body: dados,
+  });
+
+  if (indicacaoError) throw indicacaoError;
+
+  const { indicacao, consultor: consultorFromFn } = (data || {}) as {
+    indicacao: Indicacao;
+    consultor: Consultor;
+  };
+
+  if (!indicacao || !consultorFromFn) {
+    throw new Error('Resposta inválida do servidor ao criar indicação');
   }
   
-  // Criar indicação
-  const { data: indicacao, error: indicacaoError } = await supabase
-    .from('indicacoes')
-    .insert({
-      ...dados,
-      consultor_id: consultor.id,
-      consultor_nome: consultor.nome,
-      status: 'PENDENTE'
-    })
-    .select()
-    .single();
-  
-  if (indicacaoError) throw indicacaoError;
-  
-  // Update consultant's last indication date via edge function
+  // Update consultant's last indication date via backend function
   // This uses service role to bypass RLS
-  await supabase.functions.invoke('update-consultor-indicacao', {
-    body: { consultorId: consultor.id }
-  }).catch(() => {
-    // Non-blocking - don't fail the entire operation
-  });
+  await supabase.functions
+    .invoke('update-consultor-indicacao', {
+      body: { consultorId: consultorFromFn.id },
+    })
+    .catch(() => {
+      // Non-blocking - don't fail the entire operation
+    });
   
   // Enviar email para o consultor (não bloqueia o retorno)
   enviarEmailIndicacao({
-    consultorEmail: consultor.email,
-    consultorNome: consultor.nome,
+    consultorEmail: consultorFromFn.email,
+    consultorNome: consultorFromFn.nome,
     nomeCliente: dados.nome_cliente,
     telCliente: dados.tel_cliente,
     nomeCorretor: dados.nome_corretor,
@@ -134,8 +134,8 @@ export async function criarIndicacao(dados: {
   }).catch(() => {
     // Silent fail for email
   });
-  
-  return { indicacao, consultor };
+
+  return { indicacao, consultor: consultorFromFn };
 }
 
 async function enviarEmailIndicacao(dados: {
