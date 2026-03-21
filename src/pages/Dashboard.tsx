@@ -8,14 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatsCard } from "@/components/ui/stats-card";
 import { toast } from "sonner";
-import { RefreshCw, LogOut, Shield, FileText, Users, TrendingUp, CheckCircle, Clock, ArrowLeft, Settings } from "lucide-react";
+import { RefreshCw, LogOut, Shield, FileText, Users, TrendingUp, CheckCircle, Clock, ArrowLeft, Settings, AlertTriangle } from "lucide-react";
 import { getIndicacoes, getConsultores, Indicacao, Consultor, getUserRole, UserRole } from "@/lib/supabase-helpers";
+import { getSLAStatus } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import logoCri from "@/assets/logo-cri.png";
 import IndicacoesTab from "@/components/dashboard/IndicacoesTab";
 import ConsultoresTab from "@/components/dashboard/ConsultoresTab";
 import RelatoriosTab from "@/components/dashboard/RelatoriosTab";
 import AdminTab from "@/components/dashboard/AdminTab";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -27,14 +29,14 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
   const [descricaoModal, setDescricaoModal] = useState<string | null>(null);
 
-  // Stats calculados
   const stats = useMemo(() => {
     const pendentes = indicacoes.filter(i => i.status === 'PENDENTE').length;
     const emAtendimento = indicacoes.filter(i => i.status === 'EM ATENDIMENTO').length;
     const fechados = indicacoes.filter(i => i.status === 'NEGÓCIO FECHADO').length;
     const consultoresAtivos = consultores.filter(c => c.ativo_na_roleta).length;
+    const slaOverdue = indicacoes.filter(i => getSLAStatus(i.created_at, i.status) === "overdue").length;
     
-    return { pendentes, emAtendimento, fechados, consultoresAtivos, total: indicacoes.length };
+    return { pendentes, emAtendimento, fechados, consultoresAtivos, total: indicacoes.length, slaOverdue };
   }, [indicacoes, consultores]);
 
   useEffect(() => {
@@ -64,6 +66,37 @@ const Dashboard = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // Realtime notifications
+  useEffect(() => {
+    if (!isAuthenticated || !userRole) return;
+
+    const channel = supabase
+      .channel("indicacoes-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "indicacoes" },
+        (payload) => {
+          const nova = payload.new as Indicacao;
+          toast.info(`Nova indicação: ${nova.nome_cliente}`, {
+            description: `Corretor: ${nova.nome_corretor} • ${nova.cidade}`,
+            duration: 6000,
+          });
+          setIndicacoes(prev => [nova, ...prev]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "indicacoes" },
+        (payload) => {
+          const updated = payload.new as Indicacao;
+          setIndicacoes(prev => prev.map(i => i.id === updated.id ? updated : i));
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isAuthenticated, userRole]);
+
   const fetchUserRole = async () => {
     try {
       const role = await getUserRole();
@@ -72,7 +105,7 @@ const Dashboard = () => {
       } else {
         toast.error("Você não tem permissão para acessar o dashboard.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Erro ao carregar permissões");
     }
   };
@@ -88,7 +121,6 @@ const Dashboard = () => {
 
   const loadData = async () => {
     if (!userRole) return;
-    
     setLoading(true);
     try {
       const [indicacoesData, consultoresData] = await Promise.all([
@@ -97,7 +129,7 @@ const Dashboard = () => {
       ]);
       setIndicacoes(indicacoesData);
       setConsultores(consultoresData);
-    } catch (error) {
+    } catch {
       toast.error("Erro ao carregar dados");
     } finally {
       setLoading(false);
@@ -110,7 +142,6 @@ const Dashboard = () => {
     }
   }, [isAuthenticated, userRole]);
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -133,7 +164,6 @@ const Dashboard = () => {
 
   if (!isAuthenticated) return null;
 
-  // No role assigned
   if (!userRole) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -167,7 +197,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
@@ -195,6 +224,7 @@ const Dashboard = () => {
                   Formulário
                 </Button>
               </Link>
+              <ThemeToggle />
               <Button onClick={loadData} disabled={loading} size="sm" variant="outline" className="gap-2">
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 Atualizar
@@ -209,35 +239,33 @@ const Dashboard = () => {
       </header>
 
       <main className="container mx-auto p-4 md:p-8">
+        {/* SLA Alert */}
+        {stats.slaOverdue > 0 && (
+          <div className="mb-6 p-4 rounded-lg border border-destructive/30 bg-destructive/5 flex items-center gap-3 animate-fade-in">
+            <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
+            <div>
+              <p className="font-medium text-destructive">
+                {stats.slaOverdue} indicação(ões) pendente(s) há mais de 48h
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Verifique a aba Indicações para priorizar o atendimento.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
+          <StatsCard title="Total de Indicações" value={stats.total} icon={FileText} description="Todas as indicações" className="animate-fade-in" />
+          <StatsCard title="Pendentes" value={stats.pendentes} icon={Clock} description="Aguardando atendimento" className="animate-fade-in" />
+          <StatsCard title="Negócios Fechados" value={stats.fechados} icon={CheckCircle} description="Convertidos em negócio" className="animate-fade-in" />
+          <StatsCard title="Consultores Ativos" value={stats.consultoresAtivos} icon={Users} description="Na roleta de sorteio" className="animate-fade-in" />
           <StatsCard
-            title="Total de Indicações"
-            value={stats.total}
-            icon={FileText}
-            description="Todas as indicações"
-            className="animate-fade-in"
-          />
-          <StatsCard
-            title="Pendentes"
-            value={stats.pendentes}
-            icon={Clock}
-            description="Aguardando atendimento"
-            className="animate-fade-in"
-          />
-          <StatsCard
-            title="Negócios Fechados"
-            value={stats.fechados}
-            icon={CheckCircle}
-            description="Convertidos em negócio"
-            className="animate-fade-in"
-          />
-          <StatsCard
-            title="Consultores Ativos"
-            value={stats.consultoresAtivos}
-            icon={Users}
-            description="Na roleta de sorteio"
-            className="animate-fade-in"
+            title="SLA em Atraso"
+            value={stats.slaOverdue}
+            icon={AlertTriangle}
+            description="Pendentes >48h"
+            className={`animate-fade-in ${stats.slaOverdue > 0 ? 'border-destructive/30' : ''}`}
           />
         </div>
 
@@ -248,6 +276,9 @@ const Dashboard = () => {
               <FileText className="w-4 h-4" />
               Indicações
               <Badge variant="secondary" className="ml-1">{indicacoes.length}</Badge>
+              {stats.slaOverdue > 0 && (
+                <Badge variant="destructive" className="ml-1">{stats.slaOverdue}</Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="consultores" className="gap-2 data-[state=active]:bg-background">
               <Users className="w-4 h-4" />
@@ -269,24 +300,18 @@ const Dashboard = () => {
           <TabsContent value="indicacoes" className="animate-fade-in">
             <IndicacoesTab 
               indicacoes={indicacoes} 
+              consultores={consultores}
               onRefresh={loadData}
               onVerDescricao={setDescricaoModal}
             />
           </TabsContent>
 
           <TabsContent value="consultores" className="animate-fade-in">
-            <ConsultoresTab 
-              consultores={consultores}
-              onRefresh={loadData}
-              userRole={userRole}
-            />
+            <ConsultoresTab consultores={consultores} onRefresh={loadData} userRole={userRole} />
           </TabsContent>
 
           <TabsContent value="relatorios" className="animate-fade-in">
-            <RelatoriosTab 
-              indicacoes={indicacoes}
-              consultores={consultores}
-            />
+            <RelatoriosTab indicacoes={indicacoes} consultores={consultores} />
           </TabsContent>
 
           {userRole.tipo === 'DIRETOR' && (
@@ -297,7 +322,6 @@ const Dashboard = () => {
         </Tabs>
       </main>
 
-      {/* Modal de Descrição */}
       <Dialog open={!!descricaoModal} onOpenChange={() => setDescricaoModal(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
