@@ -74,6 +74,41 @@ export type Database = {
         }
         Relationships: []
       }
+      indicacao_historico: {
+        Row: {
+          alterado_por: string | null
+          created_at: string
+          id: string
+          indicacao_id: string
+          status_anterior: string
+          status_novo: string
+        }
+        Insert: {
+          alterado_por?: string | null
+          created_at?: string
+          id?: string
+          indicacao_id: string
+          status_anterior: string
+          status_novo: string
+        }
+        Update: {
+          alterado_por?: string | null
+          created_at?: string
+          id?: string
+          indicacao_id?: string
+          status_anterior?: string
+          status_novo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "indicacao_historico_indicacao_id_fkey"
+            columns: ["indicacao_id"]
+            isOneToOne: false
+            referencedRelation: "indicacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       indicacoes: {
         Row: {
           cidade: string
