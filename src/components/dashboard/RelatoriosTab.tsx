@@ -68,8 +68,58 @@ const RelatoriosTab = ({ indicacoes, consultores }: RelatoriosTabProps) => {
     toast.success("CSV exportado com sucesso!");
   };
 
+  // Compute analytics data for exports
+  const getAnalyticsData = () => {
+    const total = filteredIndicacoes.length;
+    const fechados = filteredIndicacoes.filter(i => i.status === "NEGÓCIO FECHADO").length;
+    const pendentes = filteredIndicacoes.filter(i => i.status === "PENDENTE").length;
+    const emAtendimento = filteredIndicacoes.filter(i => i.status === "EM ATENDIMENTO").length;
+    const canceladas = filteredIndicacoes.filter(i => i.status === "CANCELADA").length;
+    const taxaConversao = total > 0 ? ((fechados / total) * 100).toFixed(1) : "0";
+
+    // Monthly data
+    const monthlyMap: Record<string, { total: number; fechados: number }> = {};
+    filteredIndicacoes.forEach(i => {
+      const key = format(parseISO(i.created_at), "yyyy-MM");
+      if (!monthlyMap[key]) monthlyMap[key] = { total: 0, fechados: 0 };
+      monthlyMap[key].total++;
+      if (i.status === "NEGÓCIO FECHADO") monthlyMap[key].fechados++;
+    });
+    const monthly = Object.entries(monthlyMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, data]) => ({
+        mes: format(parseISO(`${month}-01`), "MMM/yyyy", { locale: ptBR }),
+        total: data.total,
+        fechados: data.fechados,
+        taxa: data.total > 0 ? `${Math.round((data.fechados / data.total) * 100)}%` : "0%",
+      }));
+
+    // Ranking
+    const rankingMap: Record<string, { total: number; fechados: number }> = {};
+    filteredIndicacoes.forEach(ind => {
+      if (ind.consultor_nome) {
+        if (!rankingMap[ind.consultor_nome]) rankingMap[ind.consultor_nome] = { total: 0, fechados: 0 };
+        rankingMap[ind.consultor_nome].total++;
+        if (ind.status === "NEGÓCIO FECHADO") rankingMap[ind.consultor_nome].fechados++;
+      }
+    });
+    const ranking = Object.entries(rankingMap)
+      .map(([nome, data]) => ({
+        nome,
+        total: data.total,
+        fechados: data.fechados,
+        taxa: data.total > 0 ? `${Math.round((data.fechados / data.total) * 100)}%` : "0%",
+      }))
+      .sort((a, b) => b.fechados - a.fechados || b.total - a.total);
+
+    return { total, fechados, pendentes, emAtendimento, canceladas, taxaConversao, monthly, ranking };
+  };
+
   const exportToExcel = () => {
     if (filteredIndicacoes.length === 0) { toast.error("Nenhum dado para exportar"); return; }
+    const analytics = getAnalyticsData();
+
+    // Sheet 1: Indicações
     const data = filteredIndicacoes.map((i) => ({
       Data: format(new Date(i.created_at), "dd/MM/yyyy HH:mm"),
       Consultor: i.consultor_nome || "-",
@@ -80,27 +130,108 @@ const RelatoriosTab = ({ indicacoes, consultores }: RelatoriosTabProps) => {
       Natureza: i.natureza,
       Status: i.status,
     }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const colWidths = [{ wch: 18 }, { wch: 20 }, { wch: 20 }, { wch: 25 }, { wch: 16 }, { wch: 18 }, { wch: 12 }, { wch: 18 }];
-    ws["!cols"] = colWidths;
+    const ws1 = XLSX.utils.json_to_sheet(data);
+    ws1["!cols"] = [{ wch: 18 }, { wch: 20 }, { wch: 20 }, { wch: 25 }, { wch: 16 }, { wch: 18 }, { wch: 12 }, { wch: 18 }];
+
+    // Sheet 2: KPIs + Distribuição
+    const kpiData = [
+      { Métrica: "Total de Indicações", Valor: analytics.total },
+      { Métrica: "Negócios Fechados", Valor: analytics.fechados },
+      { Métrica: "Pendentes", Valor: analytics.pendentes },
+      { Métrica: "Em Atendimento", Valor: analytics.emAtendimento },
+      { Métrica: "Canceladas", Valor: analytics.canceladas },
+      { Métrica: "Taxa de Conversão", Valor: `${analytics.taxaConversao}%` },
+    ];
+    const ws2 = XLSX.utils.json_to_sheet(kpiData);
+    ws2["!cols"] = [{ wch: 25 }, { wch: 15 }];
+
+    // Sheet 3: Dados Mensais
+    const ws3 = XLSX.utils.json_to_sheet(analytics.monthly.map(m => ({
+      Mês: m.mes, Total: m.total, Fechados: m.fechados, "Taxa Conversão": m.taxa,
+    })));
+    ws3["!cols"] = [{ wch: 15 }, { wch: 10 }, { wch: 10 }, { wch: 15 }];
+
+    // Sheet 4: Ranking
+    const ws4 = XLSX.utils.json_to_sheet(analytics.ranking.map((r, i) => ({
+      Posição: i + 1, Consultor: r.nome, Total: r.total, Fechados: r.fechados, "Taxa Conversão": r.taxa,
+    })));
+    ws4["!cols"] = [{ wch: 10 }, { wch: 25 }, { wch: 10 }, { wch: 10 }, { wch: 15 }];
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Indicações");
+    XLSX.utils.book_append_sheet(wb, ws1, "Indicações");
+    XLSX.utils.book_append_sheet(wb, ws2, "KPIs");
+    XLSX.utils.book_append_sheet(wb, ws3, "Mensal");
+    XLSX.utils.book_append_sheet(wb, ws4, "Ranking");
     XLSX.writeFile(wb, `relatorio_indicacoes_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
     toast.success("Excel exportado com sucesso!");
   };
 
   const exportToPDF = () => {
     if (filteredIndicacoes.length === 0) { toast.error("Nenhum dado para exportar"); return; }
+    const analytics = getAnalyticsData();
     const doc = new jsPDF();
+    
     doc.setFontSize(18);
     doc.text("Relatório de Indicações", 14, 22);
     doc.setFontSize(10);
     doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })}`, 14, 30);
+
+    // KPIs summary
+    doc.setFontSize(12);
+    doc.text("Resumo (KPIs)", 14, 40);
+    autoTable(doc, {
+      startY: 44,
+      head: [["Métrica", "Valor"]],
+      body: [
+        ["Total de Indicações", String(analytics.total)],
+        ["Negócios Fechados", String(analytics.fechados)],
+        ["Pendentes", String(analytics.pendentes)],
+        ["Em Atendimento", String(analytics.emAtendimento)],
+        ["Canceladas", String(analytics.canceladas)],
+        ["Taxa de Conversão", `${analytics.taxaConversao}%`],
+      ],
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [41, 128, 185] },
+      theme: "grid",
+    });
+
+    // Monthly data
+    let finalY = (doc as any).lastAutoTable?.finalY || 100;
+    doc.setFontSize(12);
+    doc.text("Dados Mensais", 14, finalY + 10);
+    autoTable(doc, {
+      startY: finalY + 14,
+      head: [["Mês", "Total", "Fechados", "Taxa Conversão"]],
+      body: analytics.monthly.map(m => [m.mes, String(m.total), String(m.fechados), m.taxa]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [39, 174, 96] },
+      theme: "grid",
+    });
+
+    // Ranking
+    finalY = (doc as any).lastAutoTable?.finalY || 160;
+    if (finalY > 240) { doc.addPage(); finalY = 20; }
+    doc.setFontSize(12);
+    doc.text("Ranking de Consultores", 14, finalY + 10);
+    autoTable(doc, {
+      startY: finalY + 14,
+      head: [["Posição", "Consultor", "Total", "Fechados", "Taxa"]],
+      body: analytics.ranking.map((r, i) => [String(i + 1), r.nome, String(r.total), String(r.fechados), r.taxa]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [142, 68, 173] },
+      theme: "grid",
+    });
+
+    // Indicações table
+    finalY = (doc as any).lastAutoTable?.finalY || 200;
+    if (finalY > 220) { doc.addPage(); finalY = 20; }
+    doc.setFontSize(12);
+    doc.text("Detalhamento das Indicações", 14, finalY + 10);
     const headers = [["Data", "Consultor", "Corretor", "Cliente", "Cidade", "Natureza", "Status"]];
     const rows = filteredIndicacoes.map((i) => [
       format(new Date(i.created_at), "dd/MM/yyyy"), i.consultor_nome || "-", i.nome_corretor, i.nome_cliente, i.cidade, i.natureza, i.status
     ]);
-    autoTable(doc, { head: headers, body: rows, startY: 38, styles: { fontSize: 8 }, headStyles: { fillColor: [41, 128, 185] } });
+    autoTable(doc, { head: headers, body: rows, startY: finalY + 14, styles: { fontSize: 8 }, headStyles: { fillColor: [41, 128, 185] } });
     doc.save(`relatorio_indicacoes_${format(new Date(), "yyyy-MM-dd")}.pdf`);
     toast.success("PDF exportado com sucesso!");
   };
