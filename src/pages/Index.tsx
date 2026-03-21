@@ -5,13 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { criarIndicacao } from "@/lib/supabase-helpers";
+import { formatPhone } from "@/lib/utils";
 import logoCri from "@/assets/logo-cri.png";
 import { RouletteAnimation } from "@/components/roulette-animation";
 import { SuccessCelebration } from "@/components/success-celebration";
-import { User, Building, MapPin, Phone, FileText, Send, LayoutDashboard } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { User, MapPin, Phone, FileText, Send, LayoutDashboard } from "lucide-react";
 
 const Index = () => {
   const [loading, setLoading] = useState(false);
@@ -34,25 +36,21 @@ const Index = () => {
     setLoading(true);
 
     try {
-      // First try to create the indication (which includes selecting a consultant)
       const { consultor } = await criarIndicacao(formData);
       
       if (!consultor || !consultor.nome) {
         throw new Error('Consultor selecionado não possui nome válido');
       }
       
-      // Only show roulette animation after we know we have a valid consultant
       setConsultorSelecionado(consultor.nome);
       setShowRoulette(true);
       
-      // Wait for roulette animation then show success
       setTimeout(() => {
         setShowRoulette(false);
         setShowSuccess(true);
         toast.success(`Indicação atribuída para ${consultor.nome}`);
       }, 2500);
       
-      // Reset form
       setFormData({
         nome_corretor: "",
         unidade_corretor: "",
@@ -78,20 +76,21 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <img src={logoCri} alt="Logo CRI" className="h-10" />
-          <Link to="/auth">
-            <Button variant="outline" size="sm" className="gap-2">
-              <LayoutDashboard className="w-4 h-4" />
-              Dashboard
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link to="/auth">
+              <Button variant="outline" size="sm" className="gap-2">
+                <LayoutDashboard className="w-4 h-4" />
+                Dashboard
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="text-center mb-8 animate-fade-in">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
@@ -164,9 +163,7 @@ const Index = () => {
                       value={formData.natureza}
                       onValueChange={(value) => setFormData({ ...formData, natureza: value })}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Locacao">Locação</SelectItem>
                         <SelectItem value="Captacao">Captação</SelectItem>
@@ -179,9 +176,7 @@ const Index = () => {
                       value={formData.cidade}
                       onValueChange={(value) => setFormData({ ...formData, cidade: value })}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Balneario Camboriu">Balneário Camboriú</SelectItem>
                         <SelectItem value="Itajai">Itajaí</SelectItem>
@@ -223,8 +218,9 @@ const Index = () => {
                       required
                       placeholder="(00) 00000-0000"
                       value={formData.tel_cliente}
-                      onChange={(e) => setFormData({ ...formData, tel_cliente: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, tel_cliente: formatPhone(e.target.value) })}
                       className="transition-all focus:ring-2 focus:ring-primary/20"
+                      maxLength={15}
                     />
                   </div>
                 </div>
@@ -263,18 +259,8 @@ const Index = () => {
         </p>
       </main>
 
-      {/* Roulette Animation */}
-      <RouletteAnimation 
-        isSpinning={showRoulette} 
-        consultorNome={consultorSelecionado}
-      />
-
-      {/* Success Celebration */}
-      <SuccessCelebration 
-        isOpen={showSuccess}
-        consultorNome={consultorSelecionado}
-        onClose={handleCloseSuccess}
-      />
+      <RouletteAnimation isSpinning={showRoulette} consultorNome={consultorSelecionado} />
+      <SuccessCelebration isOpen={showSuccess} consultorNome={consultorSelecionado} onClose={handleCloseSuccess} />
     </div>
   );
 };
