@@ -379,6 +379,50 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
         nomeCliente={historyModal?.nome || ""}
         onClose={() => setHistoryModal(null)}
       />
+
+      {/* Transfer Modal */}
+      <Dialog open={!!transferModal} onOpenChange={(open) => { if (!open) setTransferModal(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRightLeft className="w-5 h-5 text-primary" />
+              Transferir Cliente
+            </DialogTitle>
+          </DialogHeader>
+          {transferModal && (
+            <div className="space-y-4">
+              <div className="rounded-lg border p-3 bg-muted/30 space-y-1 text-sm">
+                <p><span className="font-medium">Cliente:</span> {transferModal.nome_cliente}</p>
+                <p><span className="font-medium">Consultor atual:</span> {transferModal.consultor_nome || "Nenhum"}</p>
+                <p><span className="font-medium">Natureza:</span> {transferModal.natureza} — {transferModal.cidade}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Novo Consultor</Label>
+                <Select value={selectedConsultorId || "placeholder"} onValueChange={(v) => setSelectedConsultorId(v === "placeholder" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o consultor" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="placeholder" disabled>Selecione o consultor</SelectItem>
+                    {transferConsultores.map(c => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome} — {c.natureza} / {c.cidade}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {transferConsultores.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Nenhum outro consultor ativo disponível.</p>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTransferModal(null)}>Cancelar</Button>
+            <Button onClick={handleTransfer} disabled={!selectedConsultorId || transferring}>
+              {transferring ? "Transferindo..." : "Transferir"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
