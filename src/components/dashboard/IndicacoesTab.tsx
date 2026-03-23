@@ -306,7 +306,7 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
                             {format(new Date(indicacao.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                           </TableCell>
                           <TableCell>
-                            <Select value={indicacao.status} onValueChange={(value) => handleStatusChange(indicacao.id, value)} disabled={updating === indicacao.id}>
+                            <Select value={indicacao.status} onValueChange={(value) => openStatusChangeModal(indicacao.id, indicacao.nome_cliente, indicacao.status, value)} disabled={updating === indicacao.id}>
                               <SelectTrigger className={`w-[160px] h-8 text-xs font-medium border ${getStatusColor(indicacao.status)}`}>
                                 <SelectValue />
                               </SelectTrigger>
