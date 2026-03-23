@@ -192,13 +192,31 @@ export async function getConsultores(userRole?: UserRole): Promise<Consultor[]> 
   return data || [];
 }
 
-export async function atualizarStatusIndicacao(id: string, status: string): Promise<void> {
+export async function atualizarStatusIndicacao(id: string, status: string, observacao?: string): Promise<void> {
   const { error } = await supabase
     .from('indicacoes')
     .update({ status })
     .eq('id', id);
   
   if (error) throw error;
+
+  // If observacao provided, update the latest historico entry (created by trigger)
+  if (observacao?.trim()) {
+    const { data: historico } = await supabase
+      .from('indicacao_historico' as any)
+      .select('id')
+      .eq('indicacao_id', id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (historico) {
+      await supabase
+        .from('indicacao_historico' as any)
+        .update({ observacao: observacao.trim() } as any)
+        .eq('id', (historico as any).id);
+    }
+  }
 }
 
 export async function transferirIndicacao(id: string, novoConsultorId: string, novoConsultorNome: string): Promise<void> {
