@@ -217,8 +217,7 @@ export async function removerIndicacao(id: string): Promise<void> {
     .eq('id', id);
   
   if (error) throw error;
-
-
+}
 
 export async function toggleConsultorAtivo(id: string, ativo: boolean): Promise<void> {
   const { error } = await supabase
