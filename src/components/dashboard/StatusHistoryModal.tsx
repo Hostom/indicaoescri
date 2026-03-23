@@ -18,6 +18,7 @@ interface HistoricoEntry {
   status_anterior: string;
   status_novo: string;
   created_at: string;
+  observacao?: string;
 }
 
 const getStatusColor = (status: string) => {
