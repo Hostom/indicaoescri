@@ -434,6 +434,49 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Status Change Modal */}
+      <Dialog open={!!statusChangeModal} onOpenChange={(open) => { if (!open) { setStatusChangeModal(null); setStatusObservacao(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="w-5 h-5 text-primary" />
+              Alterar Status
+            </DialogTitle>
+          </DialogHeader>
+          {statusChangeModal && (
+            <div className="space-y-4">
+              <div className="rounded-lg border p-3 bg-muted/30 space-y-1 text-sm">
+                <p><span className="font-medium">Cliente:</span> {statusChangeModal.nome}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className={`text-xs ${getStatusColor(statusChangeModal.currentStatus)}`}>
+                    {statusChangeModal.currentStatus}
+                  </Badge>
+                  <span className="text-muted-foreground">→</span>
+                  <Badge className={`text-xs ${getStatusColor(statusChangeModal.newStatus)}`}>
+                    {statusChangeModal.newStatus}
+                  </Badge>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Observação sobre o atendimento (opcional)</Label>
+                <Textarea
+                  value={statusObservacao}
+                  onChange={(e) => setStatusObservacao(e.target.value)}
+                  placeholder="Descreva o avanço ou motivo da alteração..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setStatusChangeModal(null); setStatusObservacao(""); }}>Cancelar</Button>
+            <Button onClick={handleStatusChange} disabled={updating !== null}>
+              {updating ? "Salvando..." : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
