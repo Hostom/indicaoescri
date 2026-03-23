@@ -52,6 +52,8 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
   const [transferModal, setTransferModal] = useState<Indicacao | null>(null);
   const [selectedConsultorId, setSelectedConsultorId] = useState("");
   const [transferring, setTransferring] = useState(false);
+  const [statusChangeModal, setStatusChangeModal] = useState<{ id: string; nome: string; currentStatus: string; newStatus: string } | null>(null);
+  const [statusObservacao, setStatusObservacao] = useState("");
 
   const [filters, setFilters] = useState({
     dataInicio: "",
