@@ -107,11 +107,19 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
     return filteredIndicacoes.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredIndicacoes, currentPage]);
 
-  const handleStatusChange = async (id: string, newStatus: string) => {
-    setUpdating(id);
+  const openStatusChangeModal = (id: string, nome: string, currentStatus: string, newStatus: string) => {
+    setStatusChangeModal({ id, nome, currentStatus, newStatus });
+    setStatusObservacao("");
+  };
+
+  const handleStatusChange = async () => {
+    if (!statusChangeModal) return;
+    setUpdating(statusChangeModal.id);
     try {
-      await atualizarStatusIndicacao(id, newStatus);
+      await atualizarStatusIndicacao(statusChangeModal.id, statusChangeModal.newStatus, statusObservacao);
       toast.success("Status atualizado!");
+      setStatusChangeModal(null);
+      setStatusObservacao("");
       onRefresh();
     } catch {
       toast.error("Erro ao atualizar status");
