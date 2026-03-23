@@ -67,21 +67,24 @@ const StatusHistoryModal = ({ indicacaoId, nomeCliente, onClose }: StatusHistory
             </p>
           ) : (
             historico.map((entry) => (
-              <div key={entry.id} className="flex items-center gap-3 p-3 rounded-lg border bg-card">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className={`text-xs ${getStatusColor(entry.status_anterior)}`}>
-                      {entry.status_anterior}
-                    </Badge>
-                    <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                    <Badge className={`text-xs ${getStatusColor(entry.status_novo)}`}>
-                      {entry.status_novo}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {format(new Date(entry.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                  </p>
+              <div key={entry.id} className="p-3 rounded-lg border bg-card space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge className={`text-xs ${getStatusColor(entry.status_anterior)}`}>
+                    {entry.status_anterior}
+                  </Badge>
+                  <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                  <Badge className={`text-xs ${getStatusColor(entry.status_novo)}`}>
+                    {entry.status_novo}
+                  </Badge>
                 </div>
+                {entry.observacao && (
+                  <p className="text-sm text-foreground bg-muted/50 rounded p-2 italic">
+                    "{entry.observacao}"
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {format(new Date(entry.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                </p>
               </div>
             ))
           )}
