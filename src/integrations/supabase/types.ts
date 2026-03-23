@@ -80,6 +80,7 @@ export type Database = {
           created_at: string
           id: string
           indicacao_id: string
+          observacao: string | null
           status_anterior: string
           status_novo: string
         }
@@ -88,6 +89,7 @@ export type Database = {
           created_at?: string
           id?: string
           indicacao_id: string
+          observacao?: string | null
           status_anterior: string
           status_novo: string
         }
@@ -96,6 +98,7 @@ export type Database = {
           created_at?: string
           id?: string
           indicacao_id?: string
+          observacao?: string | null
           status_anterior?: string
           status_novo?: string
         }
