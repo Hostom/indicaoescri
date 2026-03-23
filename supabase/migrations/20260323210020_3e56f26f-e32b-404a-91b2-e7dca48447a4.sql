@@ -1,0 +1,1 @@
+CREATE POLICY "Admins can update historico" ON public.indicacao_historico FOR UPDATE TO authenticated USING (is_admin(auth.uid()));
