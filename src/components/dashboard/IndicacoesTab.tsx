@@ -135,6 +135,29 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
     setCurrentPage(1);
   };
 
+  const handleTransfer = async () => {
+    if (!transferModal || !selectedConsultorId) return;
+    const consultor = consultores.find(c => c.id === selectedConsultorId);
+    if (!consultor) return;
+    setTransferring(true);
+    try {
+      await transferirIndicacao(transferModal.id, consultor.id, consultor.nome);
+      toast.success(`Cliente transferido para ${consultor.nome}!`);
+      setTransferModal(null);
+      setSelectedConsultorId("");
+      onRefresh();
+    } catch {
+      toast.error("Erro ao transferir cliente");
+    } finally {
+      setTransferring(false);
+    }
+  };
+
+  const transferConsultores = useMemo(() => {
+    if (!transferModal) return [];
+    return consultores.filter(c => c.id !== transferModal.consultor_id && c.ativo_na_roleta);
+  }, [consultores, transferModal]);
+
   return (
     <>
       <Card>
