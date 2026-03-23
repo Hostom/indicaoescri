@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { SearchInput } from "@/components/ui/search-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
-import { Eye, Trash2, FileText, ChevronLeft, ChevronRight, History, Filter, X, AlertTriangle } from "lucide-react";
-import { Indicacao, Consultor, atualizarStatusIndicacao, removerIndicacao } from "@/lib/supabase-helpers";
+import { Eye, Trash2, FileText, ChevronLeft, ChevronRight, History, Filter, X, AlertTriangle, ArrowRightLeft } from "lucide-react";
+import { Indicacao, Consultor, atualizarStatusIndicacao, removerIndicacao, transferirIndicacao } from "@/lib/supabase-helpers";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getSLAStatus } from "@/lib/utils";
 import { format, parseISO, startOfDay, endOfDay, isBefore, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -47,6 +48,9 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [historyModal, setHistoryModal] = useState<{ id: string; nome: string } | null>(null);
+  const [transferModal, setTransferModal] = useState<Indicacao | null>(null);
+  const [selectedConsultorId, setSelectedConsultorId] = useState("");
+  const [transferring, setTransferring] = useState(false);
 
   const [filters, setFilters] = useState({
     dataInicio: "",
@@ -130,6 +134,29 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
     setFilters({ dataInicio: "", dataFim: "", consultor: "", cidade: "", status: "" });
     setCurrentPage(1);
   };
+
+  const handleTransfer = async () => {
+    if (!transferModal || !selectedConsultorId) return;
+    const consultor = consultores.find(c => c.id === selectedConsultorId);
+    if (!consultor) return;
+    setTransferring(true);
+    try {
+      await transferirIndicacao(transferModal.id, consultor.id, consultor.nome);
+      toast.success(`Cliente transferido para ${consultor.nome}!`);
+      setTransferModal(null);
+      setSelectedConsultorId("");
+      onRefresh();
+    } catch {
+      toast.error("Erro ao transferir cliente");
+    } finally {
+      setTransferring(false);
+    }
+  };
+
+  const transferConsultores = useMemo(() => {
+    if (!transferModal) return [];
+    return consultores.filter(c => c.id !== transferModal.consultor_id && c.ativo_na_roleta);
+  }, [consultores, transferModal]);
 
   return (
     <>
@@ -284,6 +311,14 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
                               <Button
                                 variant="ghost" size="sm"
                                 className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                                title="Transferir consultor"
+                                onClick={() => { setTransferModal(indicacao); setSelectedConsultorId(""); }}
+                              >
+                                <ArrowRightLeft className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost" size="sm"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                                 onClick={() => setHistoryModal({ id: indicacao.id, nome: indicacao.nome_cliente })}
                               >
                                 <History className="w-4 h-4" />
@@ -344,6 +379,50 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
         nomeCliente={historyModal?.nome || ""}
         onClose={() => setHistoryModal(null)}
       />
+
+      {/* Transfer Modal */}
+      <Dialog open={!!transferModal} onOpenChange={(open) => { if (!open) setTransferModal(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRightLeft className="w-5 h-5 text-primary" />
+              Transferir Cliente
+            </DialogTitle>
+          </DialogHeader>
+          {transferModal && (
+            <div className="space-y-4">
+              <div className="rounded-lg border p-3 bg-muted/30 space-y-1 text-sm">
+                <p><span className="font-medium">Cliente:</span> {transferModal.nome_cliente}</p>
+                <p><span className="font-medium">Consultor atual:</span> {transferModal.consultor_nome || "Nenhum"}</p>
+                <p><span className="font-medium">Natureza:</span> {transferModal.natureza} — {transferModal.cidade}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Novo Consultor</Label>
+                <Select value={selectedConsultorId || "placeholder"} onValueChange={(v) => setSelectedConsultorId(v === "placeholder" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o consultor" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="placeholder" disabled>Selecione o consultor</SelectItem>
+                    {transferConsultores.map(c => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome} — {c.natureza} / {c.cidade}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {transferConsultores.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Nenhum outro consultor ativo disponível.</p>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTransferModal(null)}>Cancelar</Button>
+            <Button onClick={handleTransfer} disabled={!selectedConsultorId || transferring}>
+              {transferring ? "Transferindo..." : "Transferir"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
