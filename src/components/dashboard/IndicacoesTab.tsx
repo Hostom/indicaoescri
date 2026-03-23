@@ -311,6 +311,14 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
                               <Button
                                 variant="ghost" size="sm"
                                 className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                                title="Transferir consultor"
+                                onClick={() => { setTransferModal(indicacao); setSelectedConsultorId(""); }}
+                              >
+                                <ArrowRightLeft className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost" size="sm"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                                 onClick={() => setHistoryModal({ id: indicacao.id, nome: indicacao.nome_cliente })}
                               >
                                 <History className="w-4 h-4" />
