@@ -1,110 +1,66 @@
 
 
-# Plano de Implementacao - 8 Melhorias
+# Plano de Melhorias UI/UX
 
-## Visao Geral
+## Melhorias a implementar
 
-Implementar 8 melhorias no sistema de indicacoes, organizadas por complexidade e dependencia.
+### 1. Tooltips nos botoes de acao da tabela
+Os icones de Transferir, Historico e Excluir nao tem texto visivel. Adicionar `Tooltip` do Radix em cada botao para que ao passar o mouse apareca a descricao da acao.
 
----
+- Arquivo: `IndicacoesTab.tsx`
+- Envolver cada botao de acao com `Tooltip` + `TooltipTrigger` + `TooltipContent`
+- Adicionar `TooltipProvider` no componente
 
-## 1. Mascara de Telefone (Feature 8)
-**Escopo**: Adicionar mascara `(00) 00000-0000` no campo de telefone do formulario publico.
+### 2. Zebra striping na tabela
+Alternar cor de fundo nas linhas para facilitar leitura.
 
-- Criar funcao utilitaria `formatPhone` em `src/lib/utils.ts`
-- Aplicar mascara no `onChange` do campo `tel_cliente` em `Index.tsx`
-- Sem alteracoes no banco de dados
+- Arquivo: `IndicacoesTab.tsx`
+- Adicionar classe condicional `even:bg-muted/20` nas `TableRow`
 
----
+### 3. Skeleton loading no conteudo das tabs
+Quando `loading` esta ativo, mostrar skeletons ao inves de conteudo vazio.
 
-## 2. Dark Mode (Feature 10)
-**Escopo**: Toggle de tema claro/escuro persistido no `localStorage`.
+- Arquivo: `Dashboard.tsx`
+- Passar prop `loading` para as tabs
+- Renderizar `Skeleton` placeholders dentro de `IndicacoesTab` quando carregando
 
-- Criar `ThemeProvider` context com toggle claro/escuro
-- Adicionar botao de toggle no header do Dashboard e do formulario
-- Usar a classe `.dark` ja definida no `index.css`
-- Persistir preferencia no `localStorage`
+### 4. Animacao count-up nos StatsCards
+Animar os numeros dos cards de estatisticas de 0 ate o valor real.
 
----
+- Criar hook `useCountUp(target, duration)` em `src/hooks/use-count-up.ts`
+- Usar no `Dashboard.tsx` nos valores dos `StatsCard`
 
-## 3. Filtros Avancados no Dashboard (Feature 3)
-**Escopo**: Adicionar filtros por periodo, consultor, cidade e status na aba Indicacoes.
+### 5. Empty states ilustrados para filtros sem resultado
+Melhorar o `EmptyState` quando filtros ativos nao retornam dados, com icone contextual e botao para limpar filtros.
 
-- Adicionar barra de filtros no `IndicacoesTab` com: data inicio/fim, consultor, cidade, status
-- Filtrar dados localmente (ja carregados em memoria)
-- Botao "Limpar Filtros"
+- Arquivo: `IndicacoesTab.tsx`
+- Passar callback `clearFilters` para o `EmptyState` quando ha filtros ativos
 
----
+### 6. Formulario publico - validacao inline
+Adicionar feedback visual em tempo real nos campos obrigatorios (borda verde/vermelha apos interacao).
 
-## 4. Historico/Timeline de Status (Feature 2)
-**Escopo**: Registrar e exibir historico de mudancas de status por indicacao.
+- Arquivo: `Index.tsx`
+- Rastrear campos "tocados" via estado
+- Aplicar classes condicionais `border-success` / `border-destructive` nos inputs apos blur
 
-**Banco de dados** (migration):
-- Criar tabela `indicacao_historico` com colunas: `id`, `indicacao_id` (FK), `status_anterior`, `status_novo`, `alterado_por`, `created_at`
-- RLS: admins podem SELECT/INSERT
-- Trigger para inserir automaticamente ao alterar status na tabela `indicacoes`
+### 7. Responsividade mobile nos StatsCards
+Garantir que os cards de estatistica funcionem bem em telas pequenas.
 
-**Frontend**:
-- Modal de timeline acessivel por botao na tabela de indicacoes
-- Exibir lista cronologica de mudancas com data e usuario
+- Arquivo: `Dashboard.tsx`
+- Ajustar grid para `grid-cols-2` em mobile e `grid-cols-5` em desktop (incluindo SLA)
 
----
+## Detalhes tecnicos
 
-## 5. Notificacoes em Tempo Real (Feature 1)
-**Escopo**: Notificar no dashboard quando novas indicacoes sao criadas.
+- Tooltip: componente ja existe em `src/components/ui/tooltip.tsx`
+- Count-up: `requestAnimationFrame` com easing, ~800ms duracao
+- Skeleton: componente ja existe em `src/components/ui/skeleton.tsx`
+- Validacao inline: estado `touchedFields` com `Set<string>`, logica no `onBlur`
+- Nenhuma alteracao no banco de dados
 
-**Banco de dados**:
-- Habilitar Realtime na tabela `indicacoes` via migration
+## Arquivos alterados
 
-**Frontend**:
-- Usar `supabase.channel()` no Dashboard para ouvir `INSERT` em `indicacoes`
-- Exibir toast de notificacao com dados da nova indicacao
-- Atualizar lista automaticamente
-
----
-
-## 6. Exportacao Excel/CSV (Feature 5)
-**Escopo**: Adicionar exportacao Excel (XLSX) alem do CSV/PDF ja existente.
-
-- Instalar `xlsx` (SheetJS)
-- Adicionar botao "Exportar Excel" no `RelatoriosTab`
-- Exportar dados filtrados com formatacao basica
-
----
-
-## 7. Metricas de Conversao e Ranking (Feature 6)
-**Escopo**: Melhorar analytics com metricas de conversao e ranking detalhado.
-
-- Adicionar ao `AnalyticsCharts`: taxa de conversao por consultor (grafico de barras horizontal), tempo medio de atendimento, comparativo mensal
-- Exibir ranking com barras de progresso visuais
-- KPIs adicionais: tempo medio pendente, melhor consultor do mes
-
----
-
-## 8. Alertas de SLA (Feature 7)
-**Escopo**: Alertar quando indicacoes ficam pendentes por muito tempo.
-
-**Frontend**:
-- Definir SLA padrao (ex: 48h para primeiro atendimento)
-- Destacar indicacoes vencidas com icone/cor na tabela
-- Adicionar card de alerta no topo do dashboard com contagem de indicacoes em atraso
-- Badge de alerta na aba Indicacoes
-
----
-
-## Ordem de Implementacao
-
-Dada a quantidade de mudancas, recomendo implementar em 2-3 rodadas:
-
-**Rodada 1** (sem banco): Mascara telefone, Dark mode, Filtros avancados, Exportacao Excel
-**Rodada 2** (com banco): Historico/Timeline, Notificacoes Realtime
-**Rodada 3** (frontend): Metricas de conversao, Alertas SLA
-
-## Detalhes Tecnicos
-
-- Migration SQL para `indicacao_historico` com trigger `AFTER UPDATE` na tabela `indicacoes`
-- Realtime habilitado via `ALTER PUBLICATION supabase_realtime ADD TABLE indicacoes`
-- SheetJS (`xlsx`) para exportacao Excel
-- Context API para ThemeProvider
-- Todas as features usam dados ja carregados, sem queries extras (exceto historico)
+1. `src/hooks/use-count-up.ts` (novo)
+2. `src/pages/Dashboard.tsx`
+3. `src/pages/Index.tsx`
+4. `src/components/dashboard/IndicacoesTab.tsx`
 
