@@ -217,7 +217,8 @@ const Index = () => {
                       placeholder="Nome completo do cliente"
                       value={formData.nome_cliente}
                       onChange={(e) => setFormData({ ...formData, nome_cliente: e.target.value })}
-                      className="transition-all focus:ring-2 focus:ring-primary/20"
+                      onBlur={() => handleBlur("nome_cliente")}
+                      className={`transition-all focus:ring-2 focus:ring-primary/20 ${getFieldValidationClass("nome_cliente", formData.nome_cliente)}`}
                     />
                   </div>
                   <div className="space-y-2">
