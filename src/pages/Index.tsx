@@ -75,6 +75,15 @@ const Index = () => {
     setLoading(false);
   }, []);
 
+  const handleBlur = (field: string) => {
+    setTouchedFields(prev => new Set(prev).add(field));
+  };
+
+  const getFieldValidationClass = (field: string, value: string) => {
+    if (!touchedFields.has(field)) return "";
+    return value.trim() ? "border-success focus-visible:ring-success/30" : "border-destructive focus-visible:ring-destructive/30";
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
