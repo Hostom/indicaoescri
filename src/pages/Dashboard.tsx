@@ -20,7 +20,40 @@ import RelatoriosTab from "@/components/dashboard/RelatoriosTab";
 import AdminTab from "@/components/dashboard/AdminTab";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-const Dashboard = () => {
+const StatsCardsGrid = ({ stats, loading }: { stats: { total: number; pendentes: number; fechados: number; consultoresAtivos: number; slaOverdue: number }; loading: boolean }) => {
+  const animTotal = useCountUp(stats.total);
+  const animPendentes = useCountUp(stats.pendentes);
+  const animFechados = useCountUp(stats.fechados);
+  const animConsultores = useCountUp(stats.consultoresAtivos);
+  const animSla = useCountUp(stats.slaOverdue);
+
+  if (loading) {
+    return (
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5 mb-8">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Skeleton key={i} className="h-32 rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 grid-cols-2 lg:grid-cols-5 mb-8">
+      <StatsCard title="Total de Indicações" value={animTotal} icon={FileText} description="Todas as indicações" className="animate-fade-in" />
+      <StatsCard title="Pendentes" value={animPendentes} icon={Clock} description="Aguardando atendimento" className="animate-fade-in" />
+      <StatsCard title="Negócios Fechados" value={animFechados} icon={CheckCircle} description="Convertidos em negócio" className="animate-fade-in" />
+      <StatsCard title="Consultores Ativos" value={animConsultores} icon={Users} description="Na roleta de sorteio" className="animate-fade-in" />
+      <StatsCard
+        title="SLA em Atraso"
+        value={animSla}
+        icon={AlertTriangle}
+        description="Pendentes >48h"
+        className={`animate-fade-in ${stats.slaOverdue > 0 ? 'border-destructive/30' : ''}`}
+      />
+    </div>
+  );
+};
+
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
