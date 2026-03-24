@@ -20,6 +20,7 @@ const Index = () => {
   const [showRoulette, setShowRoulette] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [consultorSelecionado, setConsultorSelecionado] = useState("");
+  const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
 
   const [formData, setFormData] = useState({
     nome_corretor: "",
