@@ -459,19 +459,37 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Observação sobre o atendimento (opcional)</Label>
+                {statusChangeModal && ['NEGÓCIO FECHADO', 'CANCELADA'].includes(statusChangeModal.newStatus) ? (
+                  <Label className="text-sm">
+                    Observação sobre o atendimento <span className="text-destructive">*</span>
+                  </Label>
+                ) : (
+                  <Label>Observação sobre o atendimento (opcional)</Label>
+                )}
                 <Textarea
                   value={statusObservacao}
                   onChange={(e) => setStatusObservacao(e.target.value)}
-                  placeholder="Descreva o avanço ou motivo da alteração..."
+                  placeholder={
+                    statusChangeModal && statusChangeModal.newStatus === 'NEGÓCIO FECHADO'
+                      ? "Descreva os detalhes do fechamento..."
+                      : statusChangeModal && statusChangeModal.newStatus === 'CANCELADA'
+                        ? "Informe o motivo do cancelamento..."
+                        : "Descreva o avanço ou motivo da alteração..."
+                  }
                   rows={3}
                 />
+                {statusChangeModal && ['NEGÓCIO FECHADO', 'CANCELADA'].includes(statusChangeModal.newStatus) && !statusObservacao.trim() && (
+                  <p className="text-xs text-destructive">Observação obrigatória para este status.</p>
+                )}
               </div>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => { setStatusChangeModal(null); setStatusObservacao(""); }}>Cancelar</Button>
-            <Button onClick={handleStatusChange} disabled={updating !== null}>
+            <Button
+              onClick={handleStatusChange}
+              disabled={updating !== null || (statusChangeModal != null && ['NEGÓCIO FECHADO', 'CANCELADA'].includes(statusChangeModal.newStatus) && !statusObservacao.trim())}
+            >
               {updating ? "Salvando..." : "Confirmar"}
             </Button>
           </DialogFooter>
