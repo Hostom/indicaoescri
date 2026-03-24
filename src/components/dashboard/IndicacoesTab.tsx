@@ -278,12 +278,13 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedIndicacoes.map((indicacao) => {
+                    {paginatedIndicacoes.map((indicacao, index) => {
                       const sla = getSLAStatus(indicacao.created_at, indicacao.status);
+                      const zebraClass = sla === "overdue" ? "bg-destructive/5" : sla === "warning" ? "bg-warning/5" : index % 2 === 1 ? "bg-muted/20" : "";
                       return (
                         <TableRow
                           key={indicacao.id}
-                          className={`hover:bg-muted/30 transition-colors ${sla === "overdue" ? "bg-destructive/5" : sla === "warning" ? "bg-warning/5" : ""}`}
+                          className={`hover:bg-muted/30 transition-colors ${zebraClass}`}
                         >
                           <TableCell>
                             <div className="flex items-center gap-2">
