@@ -133,7 +133,8 @@ const Index = () => {
                       placeholder="Digite seu nome"
                       value={formData.nome_corretor}
                       onChange={(e) => setFormData({ ...formData, nome_corretor: e.target.value })}
-                      className="transition-all focus:ring-2 focus:ring-primary/20"
+                      onBlur={() => handleBlur("nome_corretor")}
+                      className={`transition-all focus:ring-2 focus:ring-primary/20 ${getFieldValidationClass("nome_corretor", formData.nome_corretor)}`}
                     />
                   </div>
                   <div className="space-y-2">
