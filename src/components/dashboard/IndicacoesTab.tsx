@@ -253,9 +253,14 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
         <CardContent>
           {filteredIndicacoes.length === 0 ? (
             <EmptyState
-              icon={FileText}
+              icon={search || hasActiveFilters ? Search : FileText}
               title={search || hasActiveFilters ? "Nenhum resultado encontrado" : "Nenhuma indicação"}
               description={search || hasActiveFilters ? "Tente buscar por outros termos ou altere os filtros" : "As indicações aparecerão aqui quando forem criadas"}
+              action={hasActiveFilters ? (
+                <Button variant="outline" size="sm" onClick={clearFilters} className="gap-2">
+                  <X className="w-4 h-4" /> Limpar Filtros
+                </Button>
+              ) : undefined}
             />
           ) : (
             <>
