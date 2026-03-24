@@ -325,22 +325,32 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
                             </Select>
                           </TableCell>
                           <TableCell>
+                            <TooltipProvider delayDuration={200}>
                             <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost" size="sm"
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                                title="Transferir consultor"
-                                onClick={() => { setTransferModal(indicacao); setSelectedConsultorId(""); }}
-                              >
-                                <ArrowRightLeft className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost" size="sm"
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                                onClick={() => setHistoryModal({ id: indicacao.id, nome: indicacao.nome_cliente })}
-                              >
-                                <History className="w-4 h-4" />
-                              </Button>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost" size="sm"
+                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                                    onClick={() => { setTransferModal(indicacao); setSelectedConsultorId(""); }}
+                                  >
+                                    <ArrowRightLeft className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Transferir consultor</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost" size="sm"
+                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                                    onClick={() => setHistoryModal({ id: indicacao.id, nome: indicacao.nome_cliente })}
+                                  >
+                                    <History className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Histórico de status</TooltipContent>
+                              </Tooltip>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10" disabled={deleting === indicacao.id}>
