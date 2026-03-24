@@ -375,7 +375,12 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>Excluir indicação</TooltipContent>
+                              </Tooltip>
                             </div>
+                            </TooltipProvider>
                           </TableCell>
                         </TableRow>
                       );
