@@ -249,7 +249,8 @@ const Index = () => {
                     placeholder="Ex: proprietário deseja deixar imóvel... locatário busca aluguel de 12mil..."
                     value={formData.descricao_situacao}
                     onChange={(e) => setFormData({ ...formData, descricao_situacao: e.target.value })}
-                    className="transition-all focus:ring-2 focus:ring-primary/20 resize-none"
+                    onBlur={() => handleBlur("descricao_situacao")}
+                    className={`transition-all focus:ring-2 focus:ring-primary/20 resize-none ${getFieldValidationClass("descricao_situacao", formData.descricao_situacao)}`}
                   />
                 </div>
               </div>
