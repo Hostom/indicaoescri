@@ -54,6 +54,7 @@ const StatsCardsGrid = ({ stats, loading }: { stats: { total: number; pendentes:
   );
 };
 
+const Dashboard = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
