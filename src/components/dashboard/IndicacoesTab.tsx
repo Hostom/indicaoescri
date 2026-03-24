@@ -351,6 +351,9 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
                                 </TooltipTrigger>
                                 <TooltipContent>Histórico de status</TooltipContent>
                               </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10" disabled={deleting === indicacao.id}>
