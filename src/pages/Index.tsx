@@ -231,7 +231,8 @@ const Index = () => {
                       placeholder="(00) 00000-0000"
                       value={formData.tel_cliente}
                       onChange={(e) => setFormData({ ...formData, tel_cliente: formatPhone(e.target.value) })}
-                      className="transition-all focus:ring-2 focus:ring-primary/20"
+                      onBlur={() => handleBlur("tel_cliente")}
+                      className={`transition-all focus:ring-2 focus:ring-primary/20 ${getFieldValidationClass("tel_cliente", formData.tel_cliente)}`}
                       maxLength={15}
                     />
                   </div>
