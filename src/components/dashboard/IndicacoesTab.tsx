@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { SearchInput } from "@/components/ui/search-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
-import { Eye, Trash2, FileText, ChevronLeft, ChevronRight, History, Filter, X, AlertTriangle, ArrowRightLeft } from "lucide-react";
+import { Eye, Trash2, FileText, ChevronLeft, ChevronRight, History, Filter, X, AlertTriangle, ArrowRightLeft, Search } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Indicacao, Consultor, atualizarStatusIndicacao, removerIndicacao, transferirIndicacao } from "@/lib/supabase-helpers";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getSLAStatus } from "@/lib/utils";
@@ -252,9 +253,14 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
         <CardContent>
           {filteredIndicacoes.length === 0 ? (
             <EmptyState
-              icon={FileText}
+              icon={search || hasActiveFilters ? Search : FileText}
               title={search || hasActiveFilters ? "Nenhum resultado encontrado" : "Nenhuma indicação"}
               description={search || hasActiveFilters ? "Tente buscar por outros termos ou altere os filtros" : "As indicações aparecerão aqui quando forem criadas"}
+              action={hasActiveFilters ? (
+                <Button variant="outline" size="sm" onClick={clearFilters} className="gap-2">
+                  <X className="w-4 h-4" /> Limpar Filtros
+                </Button>
+              ) : undefined}
             />
           ) : (
             <>
@@ -272,12 +278,13 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedIndicacoes.map((indicacao) => {
+                    {paginatedIndicacoes.map((indicacao, index) => {
                       const sla = getSLAStatus(indicacao.created_at, indicacao.status);
+                      const zebraClass = sla === "overdue" ? "bg-destructive/5" : sla === "warning" ? "bg-warning/5" : index % 2 === 1 ? "bg-muted/20" : "";
                       return (
                         <TableRow
                           key={indicacao.id}
-                          className={`hover:bg-muted/30 transition-colors ${sla === "overdue" ? "bg-destructive/5" : sla === "warning" ? "bg-warning/5" : ""}`}
+                          className={`hover:bg-muted/30 transition-colors ${zebraClass}`}
                         >
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -318,22 +325,35 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
                             </Select>
                           </TableCell>
                           <TableCell>
+                            <TooltipProvider delayDuration={200}>
                             <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost" size="sm"
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                                title="Transferir consultor"
-                                onClick={() => { setTransferModal(indicacao); setSelectedConsultorId(""); }}
-                              >
-                                <ArrowRightLeft className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost" size="sm"
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                                onClick={() => setHistoryModal({ id: indicacao.id, nome: indicacao.nome_cliente })}
-                              >
-                                <History className="w-4 h-4" />
-                              </Button>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost" size="sm"
+                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                                    onClick={() => { setTransferModal(indicacao); setSelectedConsultorId(""); }}
+                                  >
+                                    <ArrowRightLeft className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Transferir consultor</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost" size="sm"
+                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                                    onClick={() => setHistoryModal({ id: indicacao.id, nome: indicacao.nome_cliente })}
+                                  >
+                                    <History className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Histórico de status</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10" disabled={deleting === indicacao.id}>
@@ -355,7 +375,12 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>Excluir indicação</TooltipContent>
+                              </Tooltip>
                             </div>
+                            </TooltipProvider>
                           </TableCell>
                         </TableRow>
                       );

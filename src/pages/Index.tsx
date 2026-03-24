@@ -20,6 +20,7 @@ const Index = () => {
   const [showRoulette, setShowRoulette] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [consultorSelecionado, setConsultorSelecionado] = useState("");
+  const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
 
   const [formData, setFormData] = useState({
     nome_corretor: "",
@@ -74,6 +75,15 @@ const Index = () => {
     setLoading(false);
   }, []);
 
+  const handleBlur = (field: string) => {
+    setTouchedFields(prev => new Set(prev).add(field));
+  };
+
+  const getFieldValidationClass = (field: string, value: string) => {
+    if (!touchedFields.has(field)) return "";
+    return value.trim() ? "border-success focus-visible:ring-success/30" : "border-destructive focus-visible:ring-destructive/30";
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
@@ -123,7 +133,8 @@ const Index = () => {
                       placeholder="Digite seu nome"
                       value={formData.nome_corretor}
                       onChange={(e) => setFormData({ ...formData, nome_corretor: e.target.value })}
-                      className="transition-all focus:ring-2 focus:ring-primary/20"
+                      onBlur={() => handleBlur("nome_corretor")}
+                      className={`transition-all focus:ring-2 focus:ring-primary/20 ${getFieldValidationClass("nome_corretor", formData.nome_corretor)}`}
                     />
                   </div>
                   <div className="space-y-2">
@@ -206,7 +217,8 @@ const Index = () => {
                       placeholder="Nome completo do cliente"
                       value={formData.nome_cliente}
                       onChange={(e) => setFormData({ ...formData, nome_cliente: e.target.value })}
-                      className="transition-all focus:ring-2 focus:ring-primary/20"
+                      onBlur={() => handleBlur("nome_cliente")}
+                      className={`transition-all focus:ring-2 focus:ring-primary/20 ${getFieldValidationClass("nome_cliente", formData.nome_cliente)}`}
                     />
                   </div>
                   <div className="space-y-2">
@@ -219,7 +231,8 @@ const Index = () => {
                       placeholder="(00) 00000-0000"
                       value={formData.tel_cliente}
                       onChange={(e) => setFormData({ ...formData, tel_cliente: formatPhone(e.target.value) })}
-                      className="transition-all focus:ring-2 focus:ring-primary/20"
+                      onBlur={() => handleBlur("tel_cliente")}
+                      className={`transition-all focus:ring-2 focus:ring-primary/20 ${getFieldValidationClass("tel_cliente", formData.tel_cliente)}`}
                       maxLength={15}
                     />
                   </div>
@@ -236,7 +249,8 @@ const Index = () => {
                     placeholder="Ex: proprietário deseja deixar imóvel... locatário busca aluguel de 12mil..."
                     value={formData.descricao_situacao}
                     onChange={(e) => setFormData({ ...formData, descricao_situacao: e.target.value })}
-                    className="transition-all focus:ring-2 focus:ring-primary/20 resize-none"
+                    onBlur={() => handleBlur("descricao_situacao")}
+                    className={`transition-all focus:ring-2 focus:ring-primary/20 resize-none ${getFieldValidationClass("descricao_situacao", formData.descricao_situacao)}`}
                   />
                 </div>
               </div>

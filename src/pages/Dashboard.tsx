@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatsCard } from "@/components/ui/stats-card";
 import { toast } from "sonner";
 import { RefreshCw, LogOut, Shield, FileText, Users, TrendingUp, CheckCircle, Clock, ArrowLeft, Settings, AlertTriangle } from "lucide-react";
+import { useCountUp } from "@/hooks/use-count-up";
 import { getIndicacoes, getConsultores, Indicacao, Consultor, getUserRole, UserRole } from "@/lib/supabase-helpers";
 import { getSLAStatus } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +19,40 @@ import ConsultoresTab from "@/components/dashboard/ConsultoresTab";
 import RelatoriosTab from "@/components/dashboard/RelatoriosTab";
 import AdminTab from "@/components/dashboard/AdminTab";
 import { ThemeToggle } from "@/components/ThemeToggle";
+
+const StatsCardsGrid = ({ stats, loading }: { stats: { total: number; pendentes: number; fechados: number; consultoresAtivos: number; slaOverdue: number }; loading: boolean }) => {
+  const animTotal = useCountUp(stats.total);
+  const animPendentes = useCountUp(stats.pendentes);
+  const animFechados = useCountUp(stats.fechados);
+  const animConsultores = useCountUp(stats.consultoresAtivos);
+  const animSla = useCountUp(stats.slaOverdue);
+
+  if (loading) {
+    return (
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5 mb-8">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Skeleton key={i} className="h-32 rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 grid-cols-2 lg:grid-cols-5 mb-8">
+      <StatsCard title="Total de Indicações" value={animTotal} icon={FileText} description="Todas as indicações" className="animate-fade-in" />
+      <StatsCard title="Pendentes" value={animPendentes} icon={Clock} description="Aguardando atendimento" className="animate-fade-in" />
+      <StatsCard title="Negócios Fechados" value={animFechados} icon={CheckCircle} description="Convertidos em negócio" className="animate-fade-in" />
+      <StatsCard title="Consultores Ativos" value={animConsultores} icon={Users} description="Na roleta de sorteio" className="animate-fade-in" />
+      <StatsCard
+        title="SLA em Atraso"
+        value={animSla}
+        icon={AlertTriangle}
+        description="Pendentes >48h"
+        className={`animate-fade-in ${stats.slaOverdue > 0 ? 'border-destructive/30' : ''}`}
+      />
+    </div>
+  );
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -255,19 +290,8 @@ const Dashboard = () => {
         )}
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
-          <StatsCard title="Total de Indicações" value={stats.total} icon={FileText} description="Todas as indicações" className="animate-fade-in" />
-          <StatsCard title="Pendentes" value={stats.pendentes} icon={Clock} description="Aguardando atendimento" className="animate-fade-in" />
-          <StatsCard title="Negócios Fechados" value={stats.fechados} icon={CheckCircle} description="Convertidos em negócio" className="animate-fade-in" />
-          <StatsCard title="Consultores Ativos" value={stats.consultoresAtivos} icon={Users} description="Na roleta de sorteio" className="animate-fade-in" />
-          <StatsCard
-            title="SLA em Atraso"
-            value={stats.slaOverdue}
-            icon={AlertTriangle}
-            description="Pendentes >48h"
-            className={`animate-fade-in ${stats.slaOverdue > 0 ? 'border-destructive/30' : ''}`}
-          />
-        </div>
+        <StatsCardsGrid stats={stats} loading={loading} />
+
 
         {/* Tabs */}
         <Tabs defaultValue="indicacoes" className="animate-fade-in">
