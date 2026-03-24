@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatsCard } from "@/components/ui/stats-card";
 import { toast } from "sonner";
 import { RefreshCw, LogOut, Shield, FileText, Users, TrendingUp, CheckCircle, Clock, ArrowLeft, Settings, AlertTriangle } from "lucide-react";
+import { useCountUp } from "@/hooks/use-count-up";
 import { getIndicacoes, getConsultores, Indicacao, Consultor, getUserRole, UserRole } from "@/lib/supabase-helpers";
 import { getSLAStatus } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
