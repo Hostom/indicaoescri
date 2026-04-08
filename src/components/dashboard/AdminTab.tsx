@@ -11,8 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
-import { Plus, Trash2, Shield, UserCog } from "lucide-react";
-import { AdminUser, getAdminUsers, createAdminUser, removeAdminUser } from "@/lib/supabase-helpers";
+import { Plus, Trash2, Shield, UserCog, Users } from "lucide-react";
+import { AdminUser, getAdminUsers, createAdminUser, removeAdminUser, createIndicadorUser, getIndicadores } from "@/lib/supabase-helpers";
 import { z } from "zod";
 import {
   AlertDialog,
@@ -50,7 +50,9 @@ const getInitials = (name: string) => {
 
 const AdminTab = () => {
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [indicadores, setIndicadores] = useState<AdminUser[]>([]);
   const [openModal, setOpenModal] = useState(false);
+  const [openIndicadorModal, setOpenIndicadorModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [novoAdmin, setNovoAdmin] = useState({
@@ -60,6 +62,7 @@ const AdminTab = () => {
     role: "GERENTE" as "DIRETOR" | "GERENTE",
     cidades: [] as string[]
   });
+  const [novoIndicador, setNovoIndicador] = useState({ email: "", password: "", nome: "" });
 
   const loadAdminUsers = async () => {
     try {
@@ -72,7 +75,17 @@ const AdminTab = () => {
 
   useEffect(() => {
     loadAdminUsers();
+    loadIndicadores();
   }, []);
+
+  const loadIndicadores = async () => {
+    try {
+      const data = await getIndicadores();
+      setIndicadores(data);
+    } catch {
+      // silent
+    }
+  };
 
   const handleCidadeToggle = (cidade: string, checked: boolean) => {
     if (checked) {
