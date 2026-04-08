@@ -385,3 +385,63 @@ export async function removeAdminUser(userId: string): Promise<void> {
   
   if (error) throw error;
 }
+
+// Commission management
+export async function atualizarComissao(id: string, dados: {
+  valor_negocio: number;
+  percentual_comissao: number;
+  status_comissao: string;
+}): Promise<void> {
+  const valor_comissao = (dados.valor_negocio * dados.percentual_comissao) / 100;
+  const updateData: Record<string, unknown> = {
+    valor_negocio: dados.valor_negocio,
+    percentual_comissao: dados.percentual_comissao,
+    valor_comissao,
+    status_comissao: dados.status_comissao,
+  };
+  if (dados.status_comissao === 'PAGO') {
+    updateData.data_pagamento = new Date().toISOString();
+  }
+  const { error } = await supabase
+    .from('indicacoes')
+    .update(updateData)
+    .eq('id', id);
+  if (error) throw error;
+}
+
+// Indicador user management
+export async function createIndicadorUser(dados: {
+  email: string;
+  password: string;
+  nome: string;
+}): Promise<void> {
+  const { error } = await supabase.functions.invoke('create-indicador-user', {
+    body: dados
+  });
+  if (error) throw error;
+}
+
+export async function getIndicadores(): Promise<AdminUser[]> {
+  const { data, error } = await supabase
+    .from('user_roles')
+    .select('*')
+    .eq('role', 'INDICADOR')
+    .order('nome');
+  if (error) throw error;
+  return (data || []).map(item => ({
+    id: item.id,
+    email: '',
+    nome: item.nome,
+    role: 'INDICADOR' as any,
+    cidades: [],
+    created_at: item.created_at
+  }));
+}
+
+export async function vincularIndicadorAoIndicacao(indicacaoId: string, indicadorUserId: string): Promise<void> {
+  const { error } = await supabase
+    .from('indicacoes')
+    .update({ indicador_user_id: indicadorUserId })
+    .eq('id', indicacaoId);
+  if (error) throw error;
+}
