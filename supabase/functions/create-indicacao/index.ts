@@ -13,6 +13,8 @@ type CreateIndicacaoRequest = {
   nome_cliente: string
   tel_cliente: string
   descricao_situacao: string
+  origem?: string
+  condominio?: string
 }
 
 Deno.serve(async (req) => {
@@ -37,11 +39,19 @@ Deno.serve(async (req) => {
       body?.natureza,
       body?.cidade,
       body?.nome_corretor,
-      body?.unidade_corretor,
       body?.nome_cliente,
       body?.tel_cliente,
       body?.descricao_situacao,
     ]
+
+    // unidade_corretor is required only for internal (CORRETOR) origin
+    const origem = body?.origem || 'CORRETOR'
+    if (origem === 'CORRETOR' && (!body?.unidade_corretor || String(body.unidade_corretor).trim().length === 0)) {
+      return new Response(JSON.stringify({ error: 'Dados incompletos' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     if (required.some((v) => !v || String(v).trim().length === 0)) {
       return new Response(JSON.stringify({ error: 'Dados incompletos' }), {
@@ -70,14 +80,24 @@ Deno.serve(async (req) => {
       })
     }
 
+    const insertData: Record<string, unknown> = {
+      natureza: body.natureza,
+      cidade: body.cidade,
+      nome_corretor: body.nome_corretor,
+      unidade_corretor: body.unidade_corretor || '',
+      nome_cliente: body.nome_cliente,
+      tel_cliente: body.tel_cliente,
+      descricao_situacao: body.descricao_situacao,
+      consultor_id: consultor.id,
+      consultor_nome: consultor.nome,
+      status: 'PENDENTE',
+      origem,
+      condominio: body.condominio || null,
+    }
+
     const { data: indicacao, error: indicacaoError } = await supabaseAdmin
       .from('indicacoes')
-      .insert({
-        ...body,
-        consultor_id: consultor.id,
-        consultor_nome: consultor.nome,
-        status: 'PENDENTE',
-      })
+      .insert(insertData)
       .select('*')
       .single()
 

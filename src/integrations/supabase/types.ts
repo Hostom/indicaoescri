@@ -115,6 +115,7 @@ export type Database = {
       indicacoes: {
         Row: {
           cidade: string
+          condominio: string | null
           consultor_id: string | null
           consultor_nome: string | null
           created_at: string
@@ -123,12 +124,14 @@ export type Database = {
           natureza: string
           nome_cliente: string
           nome_corretor: string
+          origem: string
           status: string
           tel_cliente: string
           unidade_corretor: string
         }
         Insert: {
           cidade: string
+          condominio?: string | null
           consultor_id?: string | null
           consultor_nome?: string | null
           created_at?: string
@@ -137,12 +140,14 @@ export type Database = {
           natureza: string
           nome_cliente: string
           nome_corretor: string
+          origem?: string
           status?: string
           tel_cliente: string
           unidade_corretor: string
         }
         Update: {
           cidade?: string
+          condominio?: string | null
           consultor_id?: string | null
           consultor_nome?: string | null
           created_at?: string
@@ -151,6 +156,7 @@ export type Database = {
           natureza?: string
           nome_cliente?: string
           nome_corretor?: string
+          origem?: string
           status?: string
           tel_cliente?: string
           unidade_corretor?: string
