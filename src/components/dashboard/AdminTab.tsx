@@ -140,8 +140,41 @@ const AdminTab = () => {
       toast.error(error.message || "Erro ao remover administrador");
     }
   };
+  const handleAdicionarIndicador = async () => {
+    if (!novoIndicador.email || !novoIndicador.password || !novoIndicador.nome) {
+      toast.error("Preencha todos os campos");
+      return;
+    }
+    if (novoIndicador.password.length < 6) {
+      toast.error("Senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    setLoading(true);
+    try {
+      await createIndicadorUser(novoIndicador);
+      toast.success("Indicador criado com sucesso!");
+      setOpenIndicadorModal(false);
+      setNovoIndicador({ email: "", password: "", nome: "" });
+      loadIndicadores();
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao criar indicador");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoverIndicador = async (indicador: AdminUser) => {
+    try {
+      await removeAdminUser(indicador.id);
+      toast.success("Indicador removido!");
+      loadIndicadores();
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao remover indicador");
+    }
+  };
 
   return (
+    <div className="space-y-8">
     <Card>
       <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <CardTitle className="flex items-center gap-2">
