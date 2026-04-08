@@ -138,6 +138,61 @@ export async function criarIndicacao(dados: {
   return { indicacao, consultor: consultorFromFn };
 }
 
+export async function criarIndicacaoExterna(dados: {
+  natureza: string;
+  cidade: string;
+  nome_sindico: string;
+  condominio: string;
+  nome_cliente: string;
+  tel_cliente: string;
+  descricao_situacao: string;
+}): Promise<{ indicacao: Indicacao; consultor: Consultor }> {
+  const { data, error: indicacaoError } = await supabase.functions.invoke('create-indicacao', {
+    body: {
+      natureza: dados.natureza,
+      cidade: dados.cidade,
+      nome_corretor: dados.nome_sindico,
+      unidade_corretor: '',
+      nome_cliente: dados.nome_cliente,
+      tel_cliente: dados.tel_cliente,
+      descricao_situacao: dados.descricao_situacao,
+      origem: 'EXTERNO',
+      condominio: dados.condominio,
+    },
+  });
+
+  if (indicacaoError) throw indicacaoError;
+
+  const { indicacao, consultor: consultorFromFn } = (data || {}) as {
+    indicacao: Indicacao;
+    consultor: Consultor;
+  };
+
+  if (!indicacao || !consultorFromFn) {
+    throw new Error('Resposta inválida do servidor ao criar indicação');
+  }
+
+  await supabase.functions
+    .invoke('update-consultor-indicacao', {
+      body: { consultorId: consultorFromFn.id },
+    })
+    .catch(() => {});
+
+  enviarEmailIndicacao({
+    consultorEmail: consultorFromFn.email,
+    consultorNome: consultorFromFn.nome,
+    nomeCliente: dados.nome_cliente,
+    telCliente: dados.tel_cliente,
+    nomeCorretor: dados.nome_sindico,
+    unidadeCorretor: dados.condominio,
+    natureza: dados.natureza,
+    cidade: dados.cidade,
+    descricaoSituacao: dados.descricao_situacao,
+  }).catch(() => {});
+
+  return { indicacao, consultor: consultorFromFn };
+}
+
 async function enviarEmailIndicacao(dados: {
   consultorEmail: string;
   consultorNome: string;
