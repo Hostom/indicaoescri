@@ -24,6 +24,14 @@ export interface Indicacao {
   consultor_nome: string | null;
   status: string;
   created_at: string;
+  origem?: string;
+  condominio?: string;
+  indicador_user_id?: string | null;
+  valor_negocio?: number | null;
+  percentual_comissao?: number | null;
+  valor_comissao?: number | null;
+  status_comissao?: string | null;
+  data_pagamento?: string | null;
 }
 
 export interface UserRole {
