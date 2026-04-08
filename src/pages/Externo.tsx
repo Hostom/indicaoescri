@@ -12,7 +12,7 @@ import logoCri from "@/assets/logo-cri.png";
 import { RouletteAnimation } from "@/components/roulette-animation";
 import { SuccessCelebration } from "@/components/success-celebration";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Building2, MapPin, Phone, FileText, Send } from "lucide-react";
+import { Building2, MapPin, Phone, FileText, Send, TrendingUp } from "lucide-react";
 
 const Externo = () => {
   const [loading, setLoading] = useState(false);

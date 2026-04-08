@@ -13,7 +13,7 @@ import logoCri from "@/assets/logo-cri.png";
 import { RouletteAnimation } from "@/components/roulette-animation";
 import { SuccessCelebration } from "@/components/success-celebration";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { User, MapPin, Phone, FileText, Send, LayoutDashboard } from "lucide-react";
+import { User, MapPin, Phone, FileText, Send, LayoutDashboard, TrendingUp } from "lucide-react";
 
 const Index = () => {
   const [loading, setLoading] = useState(false);
