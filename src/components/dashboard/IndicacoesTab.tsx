@@ -367,6 +367,18 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
                                 <TooltipTrigger asChild>
                                   <Button
                                     variant="ghost" size="sm"
+                                    className="h-8 w-8 p-0 text-accent hover:text-accent hover:bg-accent/10"
+                                    onClick={() => handleOpenComissao(indicacao)}
+                                  >
+                                    <DollarSign className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Comissão</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost" size="sm"
                                     className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                                     onClick={() => { setTransferModal(indicacao); setSelectedConsultorId(""); }}
                                   >
