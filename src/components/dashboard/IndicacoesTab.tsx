@@ -168,6 +168,39 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
     }
   };
 
+  const handleOpenComissao = (indicacao: Indicacao) => {
+    setComissaoModal(indicacao);
+    setComissaoForm({
+      valor_negocio: indicacao.valor_negocio?.toString() || "",
+      percentual_comissao: indicacao.percentual_comissao?.toString() || "5",
+      status_comissao: indicacao.status_comissao || "INDICADO",
+    });
+  };
+
+  const handleSaveComissao = async () => {
+    if (!comissaoModal) return;
+    const valor = parseFloat(comissaoForm.valor_negocio);
+    if (!valor || valor <= 0) {
+      toast.error("Informe um valor de negócio válido");
+      return;
+    }
+    setSavingComissao(true);
+    try {
+      await atualizarComissao(comissaoModal.id, {
+        valor_negocio: valor,
+        percentual_comissao: parseFloat(comissaoForm.percentual_comissao) || 5,
+        status_comissao: comissaoForm.status_comissao,
+      });
+      toast.success("Comissão atualizada!");
+      setComissaoModal(null);
+      onRefresh();
+    } catch {
+      toast.error("Erro ao atualizar comissão");
+    } finally {
+      setSavingComissao(false);
+    }
+  };
+
   const transferConsultores = useMemo(() => {
     if (!transferModal) return [];
     return consultores.filter(c => c.id !== transferModal.consultor_id && c.ativo_na_roleta);
