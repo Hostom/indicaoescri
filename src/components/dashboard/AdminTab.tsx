@@ -11,8 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
-import { Plus, Trash2, Shield, UserCog } from "lucide-react";
-import { AdminUser, getAdminUsers, createAdminUser, removeAdminUser } from "@/lib/supabase-helpers";
+import { Plus, Trash2, Shield, UserCog, Users } from "lucide-react";
+import { AdminUser, getAdminUsers, createAdminUser, removeAdminUser, createIndicadorUser, getIndicadores } from "@/lib/supabase-helpers";
 import { z } from "zod";
 import {
   AlertDialog,
@@ -50,7 +50,9 @@ const getInitials = (name: string) => {
 
 const AdminTab = () => {
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [indicadores, setIndicadores] = useState<AdminUser[]>([]);
   const [openModal, setOpenModal] = useState(false);
+  const [openIndicadorModal, setOpenIndicadorModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [novoAdmin, setNovoAdmin] = useState({
@@ -60,6 +62,7 @@ const AdminTab = () => {
     role: "GERENTE" as "DIRETOR" | "GERENTE",
     cidades: [] as string[]
   });
+  const [novoIndicador, setNovoIndicador] = useState({ email: "", password: "", nome: "" });
 
   const loadAdminUsers = async () => {
     try {
@@ -72,7 +75,17 @@ const AdminTab = () => {
 
   useEffect(() => {
     loadAdminUsers();
+    loadIndicadores();
   }, []);
+
+  const loadIndicadores = async () => {
+    try {
+      const data = await getIndicadores();
+      setIndicadores(data);
+    } catch {
+      // silent
+    }
+  };
 
   const handleCidadeToggle = (cidade: string, checked: boolean) => {
     if (checked) {
@@ -127,8 +140,41 @@ const AdminTab = () => {
       toast.error(error.message || "Erro ao remover administrador");
     }
   };
+  const handleAdicionarIndicador = async () => {
+    if (!novoIndicador.email || !novoIndicador.password || !novoIndicador.nome) {
+      toast.error("Preencha todos os campos");
+      return;
+    }
+    if (novoIndicador.password.length < 6) {
+      toast.error("Senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    setLoading(true);
+    try {
+      await createIndicadorUser(novoIndicador);
+      toast.success("Indicador criado com sucesso!");
+      setOpenIndicadorModal(false);
+      setNovoIndicador({ email: "", password: "", nome: "" });
+      loadIndicadores();
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao criar indicador");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoverIndicador = async (indicador: AdminUser) => {
+    try {
+      await removeAdminUser(indicador.id);
+      toast.success("Indicador removido!");
+      loadIndicadores();
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao remover indicador");
+    }
+  };
 
   return (
+    <div className="space-y-8">
     <Card>
       <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <CardTitle className="flex items-center gap-2">
@@ -314,6 +360,131 @@ const AdminTab = () => {
         )}
       </CardContent>
     </Card>
+
+    {/* Indicadores Section */}
+    <Card>
+      <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <CardTitle className="flex items-center gap-2">
+          <Users className="w-5 h-5 text-accent" />
+          Gerenciar Indicadores
+        </CardTitle>
+        <Dialog open={openIndicadorModal} onOpenChange={setOpenIndicadorModal}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <Plus className="w-4 h-4" />
+              Novo Indicador
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cadastrar Novo Indicador</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label>Nome <span className="text-destructive">*</span></Label>
+                <Input
+                  value={novoIndicador.nome}
+                  onChange={(e) => setNovoIndicador({ ...novoIndicador, nome: e.target.value })}
+                  placeholder="Nome do corretor/síndico"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email <span className="text-destructive">*</span></Label>
+                <Input
+                  type="email"
+                  value={novoIndicador.email}
+                  onChange={(e) => setNovoIndicador({ ...novoIndicador, email: e.target.value })}
+                  placeholder="indicador@email.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Senha <span className="text-destructive">*</span></Label>
+                <Input
+                  type="password"
+                  value={novoIndicador.password}
+                  onChange={(e) => setNovoIndicador({ ...novoIndicador, password: e.target.value })}
+                  placeholder="Mínimo 6 caracteres"
+                />
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button onClick={handleAdicionarIndicador} className="flex-1" disabled={loading}>
+                  {loading ? "Criando..." : "Criar Indicador"}
+                </Button>
+                <Button variant="outline" onClick={() => setOpenIndicadorModal(false)} className="flex-1">
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        {indicadores.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="Nenhum indicador cadastrado"
+            description="Cadastre indicadores para que acompanhem suas indicações e comissões"
+            action={
+              <Button onClick={() => setOpenIndicadorModal(true)} variant="outline" className="gap-2">
+                <Plus className="w-4 h-4" />
+                Novo Indicador
+              </Button>
+            }
+          />
+        ) : (
+          <div className="overflow-x-auto rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead>Indicador</TableHead>
+                  <TableHead className="w-[80px]">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {indicadores.map((ind) => (
+                  <TableRow key={ind.id} className="hover:bg-muted/30 transition-colors">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9">
+                          <AvatarFallback className="text-sm font-medium bg-accent/10 text-accent">
+                            {getInitials(ind.nome)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium">{ind.nome}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Remover o indicador <strong>{ind.nome}</strong>?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleRemoverIndicador(ind)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+    </div>
   );
 };
 

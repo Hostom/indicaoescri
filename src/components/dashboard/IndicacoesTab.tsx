@@ -10,9 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { SearchInput } from "@/components/ui/search-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
-import { Eye, Trash2, FileText, ChevronLeft, ChevronRight, History, Filter, X, AlertTriangle, ArrowRightLeft, Search } from "lucide-react";
+import { Eye, Trash2, FileText, ChevronLeft, ChevronRight, History, Filter, X, AlertTriangle, ArrowRightLeft, Search, DollarSign } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Indicacao, Consultor, atualizarStatusIndicacao, removerIndicacao, transferirIndicacao } from "@/lib/supabase-helpers";
+import { Indicacao, Consultor, atualizarStatusIndicacao, removerIndicacao, transferirIndicacao, atualizarComissao } from "@/lib/supabase-helpers";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getSLAStatus } from "@/lib/utils";
 import { format, parseISO, startOfDay, endOfDay, isBefore, isAfter } from "date-fns";
@@ -55,6 +55,9 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
   const [transferring, setTransferring] = useState(false);
   const [statusChangeModal, setStatusChangeModal] = useState<{ id: string; nome: string; currentStatus: string; newStatus: string } | null>(null);
   const [statusObservacao, setStatusObservacao] = useState("");
+  const [comissaoModal, setComissaoModal] = useState<Indicacao | null>(null);
+  const [comissaoForm, setComissaoForm] = useState({ valor_negocio: "", percentual_comissao: "5", status_comissao: "INDICADO" });
+  const [savingComissao, setSavingComissao] = useState(false);
 
   const [filters, setFilters] = useState({
     dataInicio: "",
@@ -162,6 +165,39 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
       toast.error("Erro ao transferir cliente");
     } finally {
       setTransferring(false);
+    }
+  };
+
+  const handleOpenComissao = (indicacao: Indicacao) => {
+    setComissaoModal(indicacao);
+    setComissaoForm({
+      valor_negocio: indicacao.valor_negocio?.toString() || "",
+      percentual_comissao: indicacao.percentual_comissao?.toString() || "5",
+      status_comissao: indicacao.status_comissao || "INDICADO",
+    });
+  };
+
+  const handleSaveComissao = async () => {
+    if (!comissaoModal) return;
+    const valor = parseFloat(comissaoForm.valor_negocio);
+    if (!valor || valor <= 0) {
+      toast.error("Informe um valor de negócio válido");
+      return;
+    }
+    setSavingComissao(true);
+    try {
+      await atualizarComissao(comissaoModal.id, {
+        valor_negocio: valor,
+        percentual_comissao: parseFloat(comissaoForm.percentual_comissao) || 5,
+        status_comissao: comissaoForm.status_comissao,
+      });
+      toast.success("Comissão atualizada!");
+      setComissaoModal(null);
+      onRefresh();
+    } catch {
+      toast.error("Erro ao atualizar comissão");
+    } finally {
+      setSavingComissao(false);
     }
   };
 
@@ -327,6 +363,18 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
                           <TableCell>
                             <TooltipProvider delayDuration={200}>
                             <div className="flex items-center gap-1">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost" size="sm"
+                                    className="h-8 w-8 p-0 text-accent hover:text-accent hover:bg-accent/10"
+                                    onClick={() => handleOpenComissao(indicacao)}
+                                  >
+                                    <DollarSign className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Comissão</TooltipContent>
+                              </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
@@ -516,6 +564,78 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
               disabled={updating !== null || (statusChangeModal != null && ['NEGÓCIO FECHADO', 'CANCELADA'].includes(statusChangeModal.newStatus) && !statusObservacao.trim())}
             >
               {updating ? "Salvando..." : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Commission Modal */}
+      <Dialog open={!!comissaoModal} onOpenChange={(open) => { if (!open) setComissaoModal(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-accent" />
+              Gestão de Comissão
+            </DialogTitle>
+          </DialogHeader>
+          {comissaoModal && (
+            <div className="space-y-4">
+              <div className="rounded-lg border p-3 bg-muted/30 space-y-1 text-sm">
+                <p><span className="font-medium">Cliente:</span> {comissaoModal.nome_cliente}</p>
+                <p><span className="font-medium">Indicador:</span> {comissaoModal.nome_corretor}</p>
+                <p><span className="font-medium">Status:</span> {comissaoModal.status}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Valor do Negócio (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={comissaoForm.valor_negocio}
+                  onChange={(e) => setComissaoForm(f => ({ ...f, valor_negocio: e.target.value }))}
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Percentual de Comissão (%)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={comissaoForm.percentual_comissao}
+                  onChange={(e) => setComissaoForm(f => ({ ...f, percentual_comissao: e.target.value }))}
+                />
+              </div>
+              {comissaoForm.valor_negocio && (
+                <div className="rounded-lg border p-3 bg-accent/5 text-sm">
+                  <span className="font-medium">Comissão calculada: </span>
+                  <span className="text-accent font-bold">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                      (parseFloat(comissaoForm.valor_negocio) * parseFloat(comissaoForm.percentual_comissao || "0")) / 100
+                    )}
+                  </span>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>Status da Comissão</Label>
+                <Select value={comissaoForm.status_comissao} onValueChange={(v) => setComissaoForm(f => ({ ...f, status_comissao: v }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INDICADO">Previsto</SelectItem>
+                    <SelectItem value="A_PAGAR">A Pagar</SelectItem>
+                    <SelectItem value="PAGO">Pago</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setComissaoModal(null)}>Cancelar</Button>
+            <Button onClick={handleSaveComissao} disabled={savingComissao}>
+              {savingComissao ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
         </DialogContent>

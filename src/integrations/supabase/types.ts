@@ -119,15 +119,21 @@ export type Database = {
           consultor_id: string | null
           consultor_nome: string | null
           created_at: string
+          data_pagamento: string | null
           descricao_situacao: string | null
           id: string
+          indicador_user_id: string | null
           natureza: string
           nome_cliente: string
           nome_corretor: string
           origem: string
+          percentual_comissao: number | null
           status: string
+          status_comissao: string | null
           tel_cliente: string
           unidade_corretor: string
+          valor_comissao: number | null
+          valor_negocio: number | null
         }
         Insert: {
           cidade: string
@@ -135,15 +141,21 @@ export type Database = {
           consultor_id?: string | null
           consultor_nome?: string | null
           created_at?: string
+          data_pagamento?: string | null
           descricao_situacao?: string | null
           id?: string
+          indicador_user_id?: string | null
           natureza: string
           nome_cliente: string
           nome_corretor: string
           origem?: string
+          percentual_comissao?: number | null
           status?: string
+          status_comissao?: string | null
           tel_cliente: string
           unidade_corretor: string
+          valor_comissao?: number | null
+          valor_negocio?: number | null
         }
         Update: {
           cidade?: string
@@ -151,15 +163,21 @@ export type Database = {
           consultor_id?: string | null
           consultor_nome?: string | null
           created_at?: string
+          data_pagamento?: string | null
           descricao_situacao?: string | null
           id?: string
+          indicador_user_id?: string | null
           natureza?: string
           nome_cliente?: string
           nome_corretor?: string
           origem?: string
+          percentual_comissao?: number | null
           status?: string
+          status_comissao?: string | null
           tel_cliente?: string
           unidade_corretor?: string
+          valor_comissao?: number | null
+          valor_negocio?: number | null
         }
         Relationships: [
           {
@@ -212,9 +230,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_indicador: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "DIRETOR" | "GERENTE"
+      app_role: "DIRETOR" | "GERENTE" | "INDICADOR"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -342,7 +361,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["DIRETOR", "GERENTE"],
+      app_role: ["DIRETOR", "GERENTE", "INDICADOR"],
     },
   },
 } as const

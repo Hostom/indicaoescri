@@ -1,66 +1,71 @@
+# Dashboard do Indicador
 
+## Visão Geral
+Criar um painel para corretores, síndicos e zeladores acompanharem suas indicações e comissões.
 
-# Plano de Melhorias UI/UX
+---
 
-## Melhorias a implementar
+## 1. Banco de Dados
 
-### 1. Tooltips nos botoes de acao da tabela
-Os icones de Transferir, Historico e Excluir nao tem texto visivel. Adicionar `Tooltip` do Radix em cada botao para que ao passar o mouse apareca a descricao da acao.
+### Adicionar campos de comissão na tabela `indicacoes`:
+- `valor_negocio` (numeric) — valor do negócio fechado, preenchido pelo admin
+- `percentual_comissao` (numeric, default 5) — percentual da comissão
+- `valor_comissao` (numeric, gerado) — calculado automaticamente
+- `status_comissao` (text: INDICADO / A_PAGAR / PAGO, default INDICADO)
+- `data_pagamento` (timestamp) — data em que a comissão foi paga
 
-- Arquivo: `IndicacoesTab.tsx`
-- Envolver cada botao de acao com `Tooltip` + `TooltipTrigger` + `TooltipContent`
-- Adicionar `TooltipProvider` no componente
+### Adicionar novo role `INDICADOR` ao enum `app_role`:
+- Permite login separado para quem indica
 
-### 2. Zebra striping na tabela
-Alternar cor de fundo nas linhas para facilitar leitura.
+### RLS para indicadores:
+- Indicadores veem apenas suas próprias indicações (filtrado por `nome_corretor` ou `user_id` vinculado)
+- Adicionar campo `indicador_user_id` (uuid, nullable) na tabela `indicacoes` para vincular ao usuário logado
 
-- Arquivo: `IndicacoesTab.tsx`
-- Adicionar classe condicional `even:bg-muted/20` nas `TableRow`
+### Vincular indicações ao usuário indicador:
+- No formulário público, após login do indicador, gravar `indicador_user_id`
+- Para indicações existentes, o admin pode vincular manualmente
 
-### 3. Skeleton loading no conteudo das tabs
-Quando `loading` esta ativo, mostrar skeletons ao inves de conteudo vazio.
+## 2. Autenticação do Indicador
 
-- Arquivo: `Dashboard.tsx`
-- Passar prop `loading` para as tabs
-- Renderizar `Skeleton` placeholders dentro de `IndicacoesTab` quando carregando
+- Reutilizar o Supabase Auth existente
+- Adicionar `INDICADOR` ao enum `app_role`
+- Criar tela de login em `/painel` (redireciona para dashboard se logado)
+- Admin pode cadastrar indicadores na aba de administração
 
-### 4. Animacao count-up nos StatsCards
-Animar os numeros dos cards de estatisticas de 0 ate o valor real.
+## 3. Página `/painel` — Dashboard do Indicador
 
-- Criar hook `useCountUp(target, duration)` em `src/hooks/use-count-up.ts`
-- Usar no `Dashboard.tsx` nos valores dos `StatsCard`
+### Cards de KPI:
+- **Total de Indicações** (todas)
+- **Comissão Prevista** (soma de `valor_comissao` onde status_comissao = INDICADO)
+- **A Pagar** (soma onde status_comissao = A_PAGAR)
+- **Pago** (soma onde status_comissao = PAGO)
 
-### 5. Empty states ilustrados para filtros sem resultado
-Melhorar o `EmptyState` quando filtros ativos nao retornam dados, com icone contextual e botao para limpar filtros.
+### Gráfico de comissões por mês (últimos 12 meses)
 
-- Arquivo: `IndicacoesTab.tsx`
-- Passar callback `clearFilters` para o `EmptyState` quando ha filtros ativos
+### Tabela de indicações:
+- Cliente, Natureza, Cidade, Status da indicação, Valor do negócio, Comissão, Status da comissão, Data
 
-### 6. Formulario publico - validacao inline
-Adicionar feedback visual em tempo real nos campos obrigatorios (borda verde/vermelha apos interacao).
+## 4. Painel Admin — Gestão de Comissões
 
-- Arquivo: `Index.tsx`
-- Rastrear campos "tocados" via estado
-- Aplicar classes condicionais `border-success` / `border-destructive` nos inputs apos blur
+- Na aba de indicações, permitir que o admin informe:
+  - Valor do negócio
+  - Percentual de comissão
+  - Status da comissão (INDICADO → A_PAGAR → PAGO)
 
-### 7. Responsividade mobile nos StatsCards
-Garantir que os cards de estatistica funcionem bem em telas pequenas.
+## 5. Formulários públicos
 
-- Arquivo: `Dashboard.tsx`
-- Ajustar grid para `grid-cols-2` em mobile e `grid-cols-5` em desktop (incluindo SLA)
+- Adicionar link "Acompanhe suas indicações" nos formulários `/` e `/externo`
+- Se o indicador estiver logado, vincular automaticamente o `indicador_user_id`
 
-## Detalhes tecnicos
+---
 
-- Tooltip: componente ja existe em `src/components/ui/tooltip.tsx`
-- Count-up: `requestAnimationFrame` com easing, ~800ms duracao
-- Skeleton: componente ja existe em `src/components/ui/skeleton.tsx`
-- Validacao inline: estado `touchedFields` com `Set<string>`, logica no `onBlur`
-- Nenhuma alteracao no banco de dados
+## Arquivos a criar/modificar
 
-## Arquivos alterados
-
-1. `src/hooks/use-count-up.ts` (novo)
-2. `src/pages/Dashboard.tsx`
-3. `src/pages/Index.tsx`
-4. `src/components/dashboard/IndicacoesTab.tsx`
-
+1. **Migration SQL** — campos de comissão + enum INDICADOR + RLS
+2. `src/pages/PainelIndicador.tsx` — Dashboard do indicador
+3. `src/pages/PainelLogin.tsx` — Login do indicador
+4. `src/App.tsx` — novas rotas
+5. `src/components/dashboard/IndicacoesTab.tsx` — gestão de comissão pelo admin
+6. `src/lib/supabase-helpers.ts` — funções para indicadores
+7. `src/pages/Index.tsx` e `src/pages/Externo.tsx` — link para painel
+8. Edge function para cadastro de indicador (se necessário)

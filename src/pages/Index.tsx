@@ -13,7 +13,7 @@ import logoCri from "@/assets/logo-cri.png";
 import { RouletteAnimation } from "@/components/roulette-animation";
 import { SuccessCelebration } from "@/components/success-celebration";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { User, MapPin, Phone, FileText, Send, LayoutDashboard } from "lucide-react";
+import { User, MapPin, Phone, FileText, Send, LayoutDashboard, TrendingUp } from "lucide-react";
 
 const Index = () => {
   const [loading, setLoading] = useState(false);
@@ -268,9 +268,15 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          Ao enviar, um consultor será selecionado automaticamente pela roleta
-        </p>
+        <div className="text-center mt-6 space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Ao enviar, um consultor será selecionado automaticamente pela roleta
+          </p>
+          <Link to="/painel-login" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
+            <TrendingUp className="w-4 h-4" />
+            Acompanhe suas indicações e comissões
+          </Link>
+        </div>
       </main>
 
       <RouletteAnimation isSpinning={showRoulette} consultorNome={consultorSelecionado} />
