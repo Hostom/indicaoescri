@@ -15,6 +15,7 @@ type CreateIndicacaoRequest = {
   descricao_situacao: string
   origem?: string
   condominio?: string
+  indicador_user_id?: string
 }
 
 Deno.serve(async (req) => {
@@ -93,6 +94,7 @@ Deno.serve(async (req) => {
       status: 'PENDENTE',
       origem,
       condominio: body.condominio || null,
+      indicador_user_id: body.indicador_user_id || null,
     }
 
     const { data: indicacao, error: indicacaoError } = await supabaseAdmin
