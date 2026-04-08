@@ -256,9 +256,15 @@ const Externo = () => {
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          Ao enviar, um consultor será selecionado automaticamente pela roleta
-        </p>
+        <div className="text-center mt-6 space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Ao enviar, um consultor será selecionado automaticamente pela roleta
+          </p>
+          <a href="/painel-login" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
+            <TrendingUp className="w-4 h-4" />
+            Acompanhe suas indicações e comissões
+          </a>
+        </div>
       </main>
 
       <RouletteAnimation isSpinning={showRoulette} consultorNome={consultorSelecionado} />
