@@ -10,9 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { SearchInput } from "@/components/ui/search-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
-import { Eye, Trash2, FileText, ChevronLeft, ChevronRight, History, Filter, X, AlertTriangle, ArrowRightLeft, Search } from "lucide-react";
+import { Eye, Trash2, FileText, ChevronLeft, ChevronRight, History, Filter, X, AlertTriangle, ArrowRightLeft, Search, DollarSign } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Indicacao, Consultor, atualizarStatusIndicacao, removerIndicacao, transferirIndicacao } from "@/lib/supabase-helpers";
+import { Indicacao, Consultor, atualizarStatusIndicacao, removerIndicacao, transferirIndicacao, atualizarComissao } from "@/lib/supabase-helpers";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getSLAStatus } from "@/lib/utils";
 import { format, parseISO, startOfDay, endOfDay, isBefore, isAfter } from "date-fns";
@@ -55,6 +55,9 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
   const [transferring, setTransferring] = useState(false);
   const [statusChangeModal, setStatusChangeModal] = useState<{ id: string; nome: string; currentStatus: string; newStatus: string } | null>(null);
   const [statusObservacao, setStatusObservacao] = useState("");
+  const [comissaoModal, setComissaoModal] = useState<Indicacao | null>(null);
+  const [comissaoForm, setComissaoForm] = useState({ valor_negocio: "", percentual_comissao: "5", status_comissao: "INDICADO" });
+  const [savingComissao, setSavingComissao] = useState(false);
 
   const [filters, setFilters] = useState({
     dataInicio: "",
