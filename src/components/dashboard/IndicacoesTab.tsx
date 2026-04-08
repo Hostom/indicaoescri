@@ -568,6 +568,78 @@ const IndicacoesTab = ({ indicacoes, consultores, onRefresh, onVerDescricao }: I
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Commission Modal */}
+      <Dialog open={!!comissaoModal} onOpenChange={(open) => { if (!open) setComissaoModal(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-accent" />
+              Gestão de Comissão
+            </DialogTitle>
+          </DialogHeader>
+          {comissaoModal && (
+            <div className="space-y-4">
+              <div className="rounded-lg border p-3 bg-muted/30 space-y-1 text-sm">
+                <p><span className="font-medium">Cliente:</span> {comissaoModal.nome_cliente}</p>
+                <p><span className="font-medium">Indicador:</span> {comissaoModal.nome_corretor}</p>
+                <p><span className="font-medium">Status:</span> {comissaoModal.status}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Valor do Negócio (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={comissaoForm.valor_negocio}
+                  onChange={(e) => setComissaoForm(f => ({ ...f, valor_negocio: e.target.value }))}
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Percentual de Comissão (%)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={comissaoForm.percentual_comissao}
+                  onChange={(e) => setComissaoForm(f => ({ ...f, percentual_comissao: e.target.value }))}
+                />
+              </div>
+              {comissaoForm.valor_negocio && (
+                <div className="rounded-lg border p-3 bg-accent/5 text-sm">
+                  <span className="font-medium">Comissão calculada: </span>
+                  <span className="text-accent font-bold">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                      (parseFloat(comissaoForm.valor_negocio) * parseFloat(comissaoForm.percentual_comissao || "0")) / 100
+                    )}
+                  </span>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>Status da Comissão</Label>
+                <Select value={comissaoForm.status_comissao} onValueChange={(v) => setComissaoForm(f => ({ ...f, status_comissao: v }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INDICADO">Previsto</SelectItem>
+                    <SelectItem value="A_PAGAR">A Pagar</SelectItem>
+                    <SelectItem value="PAGO">Pago</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setComissaoModal(null)}>Cancelar</Button>
+            <Button onClick={handleSaveComissao} disabled={savingComissao}>
+              {savingComissao ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
