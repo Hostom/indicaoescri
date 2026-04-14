@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { criarIndicacao } from "@/lib/supabase-helpers";
+import { supabase } from "@/integrations/supabase/client";
 import { formatPhone } from "@/lib/utils";
 import logoCri from "@/assets/logo-cri.png";
 import { RouletteAnimation } from "@/components/roulette-animation";

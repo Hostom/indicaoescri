@@ -255,7 +255,7 @@ const PainelIndicador = () => {
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Link to="/">
+            <Link to="/corretor">
               <Button variant="outline" size="sm" className="gap-2">
                 <ArrowLeft className="w-4 h-4" />
                 <span className="hidden sm:inline">Indicar</span>
