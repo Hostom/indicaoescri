@@ -131,7 +131,16 @@ const PainelLogin = () => {
       });
 
       if (error) {
-        toast.error("Erro ao criar conta. Tente novamente.");
+        // Try to extract the JSON error message from the response
+        let msg = "Erro ao criar conta. Tente novamente.";
+        try {
+          const context = (error as any)?.context;
+          if (context instanceof Response) {
+            const body = await context.json();
+            if (body?.error) msg = body.error;
+          }
+        } catch {}
+        toast.error(msg);
         return;
       }
 
