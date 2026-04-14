@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import logoCri from "@/assets/logo-cri.png";
-import { Lock, Mail, ArrowLeft, LogIn, TrendingUp } from "lucide-react";
+import { Lock, Mail, ArrowLeft, LogIn, TrendingUp, UserPlus, User } from "lucide-react";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -15,17 +15,22 @@ const loginSchema = z.object({
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
 });
 
+const signupSchema = loginSchema.extend({
+  nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+});
+
 const PainelLogin = () => {
   const navigate = useNavigate();
+  const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [nome, setNome] = useState("");
+  const [errors, setErrors] = useState<{ email?: string; password?: string; nome?: string }>({});
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        // Check if user is INDICADOR
         const { data } = await supabase
           .from('user_roles')
           .select('role')
@@ -61,15 +66,19 @@ const PainelLogin = () => {
 
   const validateForm = () => {
     try {
-      loginSchema.parse({ email, password });
+      if (isLogin) {
+        loginSchema.parse({ email, password });
+      } else {
+        signupSchema.parse({ email, password, nome });
+      }
       setErrors({});
       return true;
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const fieldErrors: { email?: string; password?: string } = {};
+        const fieldErrors: { email?: string; password?: string; nome?: string } = {};
         error.errors.forEach((err) => {
-          if (err.path[0] === "email") fieldErrors.email = err.message;
-          if (err.path[0] === "password") fieldErrors.password = err.message;
+          const field = err.path[0] as string;
+          fieldErrors[field as keyof typeof fieldErrors] = err.message;
         });
         setErrors(fieldErrors);
       }
@@ -93,10 +102,39 @@ const PainelLogin = () => {
         }
         return;
       }
-
-      // Role check happens in the onAuthStateChange listener
     } catch {
       toast.error("Erro ao fazer login");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('register-indicador', {
+        body: { email, password, nome },
+      });
+
+      if (error) {
+        toast.error("Erro ao criar conta. Tente novamente.");
+        return;
+      }
+
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      toast.success("Conta criada com sucesso! Faça login para acessar.");
+      setIsLogin(true);
+      setNome("");
+      setPassword("");
+    } catch {
+      toast.error("Erro ao criar conta");
     } finally {
       setLoading(false);
     }
@@ -120,19 +158,42 @@ const PainelLogin = () => {
         <Card className="w-full max-w-md shadow-lg animate-fade-in">
           <CardHeader className="text-center space-y-4">
             <div className="mx-auto w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center">
-              <TrendingUp className="w-8 h-8 text-accent" />
+              {isLogin ? (
+                <TrendingUp className="w-8 h-8 text-accent" />
+              ) : (
+                <UserPlus className="w-8 h-8 text-accent" />
+              )}
             </div>
             <div>
               <CardTitle className="text-2xl font-bold">
-                Painel do Indicador
+                {isLogin ? "Painel do Indicador" : "Criar Conta"}
               </CardTitle>
               <CardDescription className="mt-2">
-                Acompanhe suas indicações e comissões
+                {isLogin
+                  ? "Acompanhe suas indicações e comissões"
+                  : "Cadastre-se para acompanhar suas indicações"}
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={isLogin ? handleLogin : handleSignup} className="space-y-4">
+              {!isLogin && (
+                <div className="space-y-2">
+                  <Label htmlFor="nome" className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    Nome completo
+                  </Label>
+                  <Input
+                    id="nome"
+                    type="text"
+                    placeholder="Seu nome completo"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    className="transition-all focus:ring-2 focus:ring-primary/20"
+                  />
+                  {errors.nome && <p className="text-sm text-destructive">{errors.nome}</p>}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email" className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-muted-foreground" />
@@ -164,16 +225,31 @@ const PainelLogin = () => {
                 {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
               </div>
               <Button type="submit" className="w-full gap-2" size="lg" disabled={loading}>
-                <LogIn className="w-4 h-4" />
-                {loading ? "Entrando..." : "Acessar Painel"}
+                {isLogin ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                {loading
+                  ? (isLogin ? "Entrando..." : "Criando conta...")
+                  : (isLogin ? "Acessar Painel" : "Criar Conta")}
               </Button>
             </form>
 
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                className="text-sm text-primary hover:underline"
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setErrors({});
+                }}
+              >
+                {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Fazer login"}
+              </button>
+            </div>
+
             <div className="mt-6 pt-6 border-t text-center">
               <p className="text-xs text-muted-foreground">
-                Acesso exclusivo para indicadores cadastrados.
-                <br />
-                Solicite seu acesso ao administrador.
+                {isLogin
+                  ? "Acesso exclusivo para indicadores."
+                  : "Ao criar sua conta, você poderá acompanhar suas indicações e comissões."}
               </p>
             </div>
           </CardContent>
