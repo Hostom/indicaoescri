@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import logoCri from "@/assets/logo-cri.png";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Building2, User, ArrowRight, Briefcase, Home } from "lucide-react";
+import { Building2, User, ArrowRight, Briefcase, CheckCircle } from "lucide-react";
 
 const Indique = () => {
   return (
@@ -44,15 +44,15 @@ const Indique = () => {
 
                 <div className="space-y-3 mb-6 flex-1">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Home className="w-4 h-4 text-success" />
+                    <CheckCircle className="w-4 h-4 text-success" />
                     <span>Acesso ao painel de comissões</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Home className="w-4 h-4 text-success" />
+                    <CheckCircle className="w-4 h-4 text-success" />
                     <span>Visualize status de todas indicações</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Home className="w-4 h-4 text-success" />
+                    <CheckCircle className="w-4 h-4 text-success" />
                     <span>Acompanhe pagamentos e valores</span>
                   </div>
                 </div>
@@ -86,15 +86,15 @@ const Indique = () => {
 
                 <div className="space-y-3 mb-6 flex-1">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Home className="w-4 h-4 text-success" />
+                    <CheckCircle className="w-4 h-4 text-success" />
                     <span>Sem necessidade de cadastro</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Home className="w-4 h-4 text-success" />
+                    <CheckCircle className="w-4 h-4 text-success" />
                     <span>Indique rapidamente sem login</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Home className="w-4 h-4 text-success" />
+                    <CheckCircle className="w-4 h-4 text-success" />
                     <span>Consultor é selecionado automaticamente</span>
                   </div>
                 </div>
