@@ -22,6 +22,13 @@ const Index = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [consultorSelecionado, setConsultorSelecionado] = useState("");
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUserId(session?.user?.id || null);
+    });
+  }, []);
 
   const [formData, setFormData] = useState({
     nome_corretor: "",
