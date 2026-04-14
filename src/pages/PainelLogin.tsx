@@ -28,40 +28,47 @@ const PainelLogin = () => {
   const [nome, setNome] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string; nome?: string }>({});
 
+  const [isReady, setIsReady] = useState(false);
+
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        const { data } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
+    let mounted = true;
 
-        if (data?.role === 'INDICADOR') {
-          navigate("/painel");
-        } else if (data?.role === 'DIRETOR' || data?.role === 'GERENTE') {
-          navigate("/dashboard");
-        }
+    const checkRoleAndRedirect = async (userId: string) => {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!mounted) return;
+
+      if (data?.role === 'INDICADOR') {
+        navigate("/painel");
+      } else if (data?.role === 'DIRETOR' || data?.role === 'GERENTE') {
+        navigate("/dashboard");
       }
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      if (session?.user) {
+        checkRoleAndRedirect(session.user.id);
+      }
+      setIsReady(true);
     });
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const { data } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-
-        if (data?.role === 'INDICADOR') {
-          navigate("/painel");
-        } else if (data?.role === 'DIRETOR' || data?.role === 'GERENTE') {
-          navigate("/dashboard");
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (session?.user) {
+          checkRoleAndRedirect(session.user.id);
         }
       }
-    });
+    );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const validateForm = () => {
