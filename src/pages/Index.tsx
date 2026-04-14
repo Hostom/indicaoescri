@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { criarIndicacao } from "@/lib/supabase-helpers";
+import { supabase } from "@/integrations/supabase/client";
 import { formatPhone } from "@/lib/utils";
 import logoCri from "@/assets/logo-cri.png";
 import { RouletteAnimation } from "@/components/roulette-animation";
@@ -21,6 +22,13 @@ const Index = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [consultorSelecionado, setConsultorSelecionado] = useState("");
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUserId(session?.user?.id || null);
+    });
+  }, []);
 
   const [formData, setFormData] = useState({
     nome_corretor: "",
@@ -37,7 +45,10 @@ const Index = () => {
     setLoading(true);
 
     try {
-      const { consultor } = await criarIndicacao(formData);
+      const payload = currentUserId
+        ? { ...formData, indicador_user_id: currentUserId }
+        : formData;
+      const { consultor } = await criarIndicacao(payload);
       
       if (!consultor || !consultor.nome) {
         throw new Error('Consultor selecionado não possui nome válido');

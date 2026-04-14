@@ -98,11 +98,8 @@ export async function criarIndicacao(dados: {
   nome_cliente: string;
   tel_cliente: string;
   descricao_situacao: string;
+  indicador_user_id?: string;
 }): Promise<{ indicacao: Indicacao; consultor: Consultor }> {
-  // A escolha do consultor e a criação da indicação acontecem no backend
-  // para evitar problemas de RLS no formulário público.
-  
-  // Criar indicação (via backend function para evitar RLS no formulário público)
   const { data, error: indicacaoError } = await supabase.functions.invoke('create-indicacao', {
     body: dados,
   });
