@@ -45,7 +45,10 @@ const Index = () => {
     setLoading(true);
 
     try {
-      const { consultor } = await criarIndicacao(formData);
+      const payload = currentUserId
+        ? { ...formData, indicador_user_id: currentUserId }
+        : formData;
+      const { consultor } = await criarIndicacao(payload);
       
       if (!consultor || !consultor.nome) {
         throw new Error('Consultor selecionado não possui nome válido');
