@@ -46,6 +46,10 @@ const PainelLogin = () => {
         navigate("/painel");
       } else if (data?.role === 'DIRETOR' || data?.role === 'GERENTE') {
         navigate("/dashboard");
+      } else {
+        // User has no role - sign out and show error
+        await supabase.auth.signOut();
+        toast.error("Sua conta não possui acesso ao painel. Cadastre-se novamente ou entre em contato com o administrador.");
       }
     };
 
