@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,13 +11,13 @@ import { StatsCard } from "@/components/ui/stats-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { LogOut, TrendingUp, DollarSign, Clock, CheckCircle, FileText, ArrowLeft, Calendar } from "lucide-react";
+import { LogOut, TrendingUp, DollarSign, Clock, CheckCircle, FileText, ArrowLeft, Calendar, LayoutDashboard, Wallet, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { useCountUp } from "@/hooks/use-count-up";
-import { format, parseISO, getMonth, getYear } from "date-fns";
+import { format, parseISO, getMonth, getYear, isSameMonth, isSameYear, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import logoCri from "@/assets/logo-cri.png";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
 interface IndicacaoIndicador {
   id: string;
@@ -167,6 +168,61 @@ const PainelIndicador = () => {
     return Array.from(set).sort((a, b) => b - a);
   }, [indicacoes]);
 
+  // Financial data calculations
+  const financialData = useMemo(() => {
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonth = subMonths(now, 1);
+    
+    // This month data
+    const thisMonthIndications = indicacoes.filter(i => {
+      const date = parseISO(i.created_at);
+      return isSameMonth(date, now) && isSameYear(date, now);
+    });
+    
+    // Last month data
+    const lastMonthIndications = indicacoes.filter(i => {
+      const date = parseISO(i.created_at);
+      return isSameMonth(date, lastMonth) && isSameYear(date, lastMonth);
+    });
+    
+    // Comissions by status
+    const byStatus = {
+      previsto: indicacoes.filter(i => i.status_comissao === 'INDICADO'),
+      aPagar: indicacoes.filter(i => i.status_comissao === 'A_PAGAR'),
+      pago: indicacoes.filter(i => i.status_comissao === 'PAGO'),
+    };
+    
+    const totals = {
+      previsto: byStatus.previsto.reduce((sum, i) => sum + (i.valor_comissao || 0), 0),
+      aPagar: byStatus.aPagar.reduce((sum, i) => sum + (i.valor_comissao || 0), 0),
+      pago: byStatus.pago.reduce((sum, i) => sum + (i.valor_comissao || 0), 0),
+    };
+    
+    // Month comparison
+    const thisMonthPago = thisMonthIndications
+      .filter(i => i.status_comissao === 'PAGO')
+      .reduce((sum, i) => sum + (i.valor_comissao || 0), 0);
+    const lastMonthPago = lastMonthIndications
+      .filter(i => i.status_comissao === 'PAGO')
+      .reduce((sum, i) => sum + (i.valor_comissao || 0), 0);
+    
+    return {
+      byStatus,
+      totals,
+      thisMonthPago,
+      lastMonthPago,
+      monthlyGrowth: lastMonthPago > 0 ? ((thisMonthPago - lastMonthPago) / lastMonthPago) * 100 : 0,
+    };
+  }, [indicacoes]);
+
+  // Pie chart data for commission distribution
+  const pieData = useMemo(() => [
+    { name: 'Previsto', value: financialData.totals.previsto, color: 'hsl(var(--primary))' },
+    { name: 'A Pagar', value: financialData.totals.aPagar, color: 'hsl(var(--warning))' },
+    { name: 'Pago', value: financialData.totals.pago, color: 'hsl(var(--success))' },
+  ].filter(item => item.value > 0), [financialData]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -214,142 +270,365 @@ const PainelIndicador = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
-        {/* KPI Cards */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-          <StatsCard
-            title="Total de Indicações"
-            value={animTotal}
-            icon={FileText}
-            description="Todas as suas indicações"
-            className="animate-fade-in"
-          />
-          <StatsCard
-            title="Comissão Prevista"
-            value={formatCurrency(stats.previsto)}
-            icon={TrendingUp}
-            description="Negócios em andamento"
-            className="animate-fade-in"
-          />
-          <StatsCard
-            title="A Pagar"
-            value={formatCurrency(stats.aPagar)}
-            icon={Clock}
-            description="Aguardando pagamento"
-            className="animate-fade-in"
-          />
-          <StatsCard
-            title="Pago"
-            value={formatCurrency(stats.pago)}
-            icon={CheckCircle}
-            description="Comissões recebidas"
-            className="animate-fade-in"
-          />
-        </div>
+        <Tabs defaultValue="resumo" className="animate-fade-in">
+          <TabsList className="mb-6 flex-wrap h-auto gap-2 bg-muted/50 p-1">
+            <TabsTrigger value="resumo" className="gap-2 data-[state=active]:bg-background">
+              <LayoutDashboard className="w-4 h-4" />
+              Resumo
+            </TabsTrigger>
+            <TabsTrigger value="financeira" className="gap-2 data-[state=active]:bg-background">
+              <Wallet className="w-4 h-4" />
+              Financeira
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Chart */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-primary" />
-              Comissões por Mês
-            </CardTitle>
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-[100px]">
-                <Calendar className="w-4 h-4 mr-1" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map(y => (
-                  <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="month" className="text-xs" />
-                  <YAxis className="text-xs" tickFormatter={(v) => `R$${v}`} />
-                  <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
-                    contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))' }}
-                  />
-                  <Bar dataKey="previsto" name="Previsto" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="aPagar" name="A Pagar" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="pago" name="Pago" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" />
-              Minhas Indicações
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {indicacoes.length === 0 ? (
-              <EmptyState
+          {/* ABA RESUMO */}
+          <TabsContent value="resumo" className="space-y-8">
+            {/* KPI Cards */}
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+              <StatsCard
+                title="Total de Indicações"
+                value={animTotal}
                 icon={FileText}
-                title="Nenhuma indicação encontrada"
-                description="Suas indicações aparecerão aqui quando forem cadastradas."
+                description="Todas as suas indicações"
+                className="animate-fade-in"
               />
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Natureza</TableHead>
-                      <TableHead>Cidade</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Consultor</TableHead>
-                      <TableHead className="text-right">Valor Negócio</TableHead>
-                      <TableHead className="text-right">Comissão</TableHead>
-                      <TableHead>Situação</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {indicacoes.map((ind, idx) => (
-                      <TableRow key={ind.id} className={idx % 2 === 0 ? '' : 'bg-muted/20'}>
-                        <TableCell className="whitespace-nowrap text-sm">
-                          {format(parseISO(ind.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                        </TableCell>
-                        <TableCell className="font-medium">{ind.nome_cliente}</TableCell>
-                        <TableCell>{ind.natureza}</TableCell>
-                        <TableCell>{ind.cidade}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={getStatusColor(ind.status)}>
-                            {ind.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{ind.consultor_nome || '-'}</TableCell>
-                        <TableCell className="text-right">
-                          {ind.valor_negocio ? formatCurrency(ind.valor_negocio) : '-'}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {ind.valor_comissao ? formatCurrency(ind.valor_comissao) : '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={getComissaoColor(ind.status_comissao)}>
-                            {comissaoLabel(ind.status_comissao)}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
+              <StatsCard
+                title="Comissão Prevista"
+                value={formatCurrency(stats.previsto)}
+                icon={TrendingUp}
+                description="Negócios em andamento"
+                className="animate-fade-in"
+              />
+              <StatsCard
+                title="A Pagar"
+                value={formatCurrency(stats.aPagar)}
+                icon={Clock}
+                description="Aguardando pagamento"
+                className="animate-fade-in"
+              />
+              <StatsCard
+                title="Pago"
+                value={formatCurrency(stats.pago)}
+                icon={CheckCircle}
+                description="Comissões recebidas"
+                className="animate-fade-in"
+              />
+            </div>
+
+            {/* Chart */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-primary" />
+                  Comissões por Mês
+                </CardTitle>
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="w-[100px]">
+                    <Calendar className="w-4 h-4 mr-1" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map(y => (
+                      <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
                     ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  </SelectContent>
+                </Select>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="month" className="text-xs" />
+                      <YAxis className="text-xs" tickFormatter={(v) => `R$${v}`} />
+                      <Tooltip
+                        formatter={(value: number) => formatCurrency(value)}
+                        contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))' }}
+                      />
+                      <Bar dataKey="previsto" name="Previsto" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="aPagar" name="A Pagar" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="pago" name="Pago" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  Minhas Indicações
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {indicacoes.length === 0 ? (
+                  <EmptyState
+                    icon={FileText}
+                    title="Nenhuma indicação encontrada"
+                    description="Suas indicações aparecerão aqui quando forem cadastradas."
+                  />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead>Natureza</TableHead>
+                          <TableHead>Cidade</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Consultor</TableHead>
+                          <TableHead className="text-right">Valor Negócio</TableHead>
+                          <TableHead className="text-right">Comissão</TableHead>
+                          <TableHead>Situação</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {indicacoes.map((ind, idx) => (
+                          <TableRow key={ind.id} className={idx % 2 === 0 ? '' : 'bg-muted/20'}>
+                            <TableCell className="whitespace-nowrap text-sm">
+                              {format(parseISO(ind.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                            </TableCell>
+                            <TableCell className="font-medium">{ind.nome_cliente}</TableCell>
+                            <TableCell>{ind.natureza}</TableCell>
+                            <TableCell>{ind.cidade}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={getStatusColor(ind.status)}>
+                                {ind.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{ind.consultor_nome || '-'}</TableCell>
+                            <TableCell className="text-right">
+                              {ind.valor_negocio ? formatCurrency(ind.valor_negocio) : '-'}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {ind.valor_comissao ? formatCurrency(ind.valor_comissao) : '-'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={getComissaoColor(ind.status_comissao)}>
+                                {comissaoLabel(ind.status_comissao)}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ABA FINANCEIRA */}
+          <TabsContent value="financeira" className="space-y-6">
+            {/* Financial KPIs */}
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+              <StatsCard
+                title="Total em Comissões"
+                value={formatCurrency(financialData.totals.previsto + financialData.totals.aPagar + financialData.totals.pago)}
+                icon={Wallet}
+                description="Soma de todas as comissões"
+                className="animate-fade-in"
+              />
+              <StatsCard
+                title="Este Mês Recebido"
+                value={formatCurrency(financialData.thisMonthPago)}
+                icon={DollarSign}
+                description="Comissões pagas no mês atual"
+                className="animate-fade-in"
+              />
+              <StatsCard
+                title="Crescimento Mensal"
+                value={`${financialData.monthlyGrowth > 0 ? '+' : ''}${financialData.monthlyGrowth.toFixed(1)}%`}
+                icon={financialData.monthlyGrowth >= 0 ? ArrowUpRight : ArrowDownRight}
+                description="Comparado ao mês anterior"
+                className={`animate-fade-in ${financialData.monthlyGrowth >= 0 ? 'border-success/20' : 'border-destructive/20'}`}
+              />
+              <StatsCard
+                title="Média por Indicação"
+                value={indicacoes.length > 0 ? formatCurrency((financialData.totals.pago + financialData.totals.aPagar) / indicacoes.filter(i => i.valor_comissao && i.valor_comissao > 0).length || 1) : formatCurrency(0)}
+                icon={TrendingUp}
+                description="Valor médio de comissão"
+                className="animate-fade-in"
+              />
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Distribution Pie Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-primary" />
+                    Distribuição das Comissões
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64">
+                    {pieData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={pieData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {pieData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <EmptyState
+                        icon={DollarSign}
+                        title="Sem dados financeiros"
+                        description="Nenhuma comissão registrada ainda."
+                      />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Status Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-primary" />
+                    Resumo por Situação
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Previsto */}
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-primary" />
+                      <div>
+                        <p className="font-medium">Previsto</p>
+                        <p className="text-xs text-muted-foreground">{financialData.byStatus.previsto.length} indicações</p>
+                      </div>
+                    </div>
+                    <span className="font-bold text-primary">{formatCurrency(financialData.totals.previsto)}</span>
+                  </div>
+
+                  {/* A Pagar */}
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-warning/5 border border-warning/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-warning" />
+                      <div>
+                        <p className="font-medium">A Pagar</p>
+                        <p className="text-xs text-muted-foreground">{financialData.byStatus.aPagar.length} indicações</p>
+                      </div>
+                    </div>
+                    <span className="font-bold text-warning">{formatCurrency(financialData.totals.aPagar)}</span>
+                  </div>
+
+                  {/* Pago */}
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-success/5 border border-success/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-success" />
+                      <div>
+                        <p className="font-medium">Pago</p>
+                        <p className="text-xs text-muted-foreground">{financialData.byStatus.pago.length} indicações</p>
+                      </div>
+                    </div>
+                    <span className="font-bold text-success">{formatCurrency(financialData.totals.pago)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Detailed Commission Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  Detalhamento Financeiro
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {indicacoes.filter(i => i.valor_comissao && i.valor_comissao > 0).length === 0 ? (
+                  <EmptyState
+                    icon={DollarSign}
+                    title="Nenhuma comissão registrada"
+                    description="As comissões aparecerão aqui quando forem cadastradas."
+                  />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead>Status Cliente</TableHead>
+                          <TableHead className="text-right">Valor Negócio</TableHead>
+                          <TableHead className="text-right">%</TableHead>
+                          <TableHead className="text-right">Comissão</TableHead>
+                          <TableHead>Situação</TableHead>
+                          <TableHead>Pagamento</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {indicacoes
+                          .filter(i => i.valor_comissao && i.valor_comissao > 0)
+                          .sort((a, b) => {
+                            // Sort by status_comissao priority: PAGO, A_PAGAR, INDICADO
+                            const priority = { 'PAGO': 3, 'A_PAGAR': 2, 'INDICADO': 1 };
+                            return (priority[b.status_comissao || ''] || 0) - (priority[a.status_comissao || ''] || 0);
+                          })
+                          .map((ind, idx) => (
+                            <TableRow key={ind.id} className={idx % 2 === 0 ? '' : 'bg-muted/20'}>
+                              <TableCell className="whitespace-nowrap text-sm">
+                                {format(parseISO(ind.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                              </TableCell>
+                              <TableCell className="font-medium">{ind.nome_cliente}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={getStatusColor(ind.status)}>
+                                  {ind.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {ind.valor_negocio ? formatCurrency(ind.valor_negocio) : '-'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {ind.percentual_comissao ? `${ind.percentual_comissao}%` : '5%'}
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                {ind.valor_comissao ? formatCurrency(ind.valor_comissao) : '-'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={getComissaoColor(ind.status_comissao)}>
+                                  {comissaoLabel(ind.status_comissao)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap text-sm">
+                                {ind.data_pagamento ? (
+                                  <span className="text-success">
+                                    {format(parseISO(ind.data_pagamento), "dd/MM/yyyy", { locale: ptBR })}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
 
       <footer className="py-4 text-center text-sm text-muted-foreground border-t">

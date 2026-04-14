@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +13,7 @@ import logoCri from "@/assets/logo-cri.png";
 import { RouletteAnimation } from "@/components/roulette-animation";
 import { SuccessCelebration } from "@/components/success-celebration";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Building2, MapPin, Phone, FileText, Send, TrendingUp } from "lucide-react";
+import { Building2, MapPin, Phone, FileText, Send, TrendingUp, ArrowLeft } from "lucide-react";
 
 const Externo = () => {
   const [loading, setLoading] = useState(false);
@@ -90,7 +91,15 @@ const Externo = () => {
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <img src={logoCri} alt="Logo CRI" className="h-10" />
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link to="/indique">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Voltar
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 

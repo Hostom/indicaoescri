@@ -13,7 +13,7 @@ import logoCri from "@/assets/logo-cri.png";
 import { RouletteAnimation } from "@/components/roulette-animation";
 import { SuccessCelebration } from "@/components/success-celebration";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { User, MapPin, Phone, FileText, Send, LayoutDashboard, TrendingUp } from "lucide-react";
+import { User, MapPin, Phone, FileText, Send, LayoutDashboard, TrendingUp, ArrowLeft } from "lucide-react";
 
 const Index = () => {
   const [loading, setLoading] = useState(false);
@@ -91,6 +91,12 @@ const Index = () => {
           <img src={logoCri} alt="Logo CRI" className="h-10" />
           <div className="flex items-center gap-2">
             <ThemeToggle />
+            <Link to="/indique">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Voltar
+              </Button>
+            </Link>
             <Link to="/auth">
               <Button variant="outline" size="sm" className="gap-2">
                 <LayoutDashboard className="w-4 h-4" />
