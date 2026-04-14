@@ -48,22 +48,52 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Create user in auth
+    // Check if user already exists
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
+    const existingUser = existingUsers?.users?.find(
+      (u: any) => u.email === email.trim().toLowerCase()
+    )
+
+    if (existingUser) {
+      // Check if they already have a role
+      const { data: existingRole } = await supabaseAdmin
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', existingUser.id)
+        .maybeSingle()
+
+      if (existingRole) {
+        return new Response(JSON.stringify({ error: 'Este email já está cadastrado. Tente fazer login.' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      // User exists but has no role - assign INDICADOR
+      const { error: insertError } = await supabaseAdmin
+        .from('user_roles')
+        .insert({
+          user_id: existingUser.id,
+          role: 'INDICADOR',
+          nome: nome.trim(),
+          cidades: [],
+        })
+
+      if (insertError) throw insertError
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Create new user in auth
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: email.trim().toLowerCase(),
       password,
       email_confirm: true,
     })
 
-    if (createError) {
-      if (createError.message.includes('already been registered')) {
-        return new Response(JSON.stringify({ error: 'Este email já está cadastrado. Tente fazer login.' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-      throw createError
-    }
+    if (createError) throw createError
 
     // Assign INDICADOR role
     const { error: insertError } = await supabaseAdmin
